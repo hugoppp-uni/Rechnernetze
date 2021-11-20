@@ -3,11 +3,11 @@
 
 class Options {
 public:
-    const std::string output;
-    const std::string remote_name;
-    const std::vector<int> range;
-    const bool slow{false};
-    const bool verbose{false};
+    std::string output;
+    std::string remote_name;
+    std::vector<int> range;
+    bool slow{false};
+    bool verbose{false};
 
     Options(int argc, char **argv) : output() {
         cxxopts::Options options("snatch", "A simple  HTTP /1.1  client.");
@@ -35,7 +35,7 @@ public:
 
 private:
 
-    void ValidateAndExitIfNeeded(const cxxopts::ParseResult &result) {
+    void ValidateAndExitIfNeeded(const cxxopts::ParseResult &result) const {
         if (range.size() != 2) {
             std::cout << "Range needs to 2 items long" << std::endl;
             exit(1);
