@@ -14,5 +14,7 @@ private:
     int file_descriptor{};
     addrinfo *address_info{};
 
-    void print_ip_info(addrinfo *result);
+    void print_all_ip_info(addrinfo *result);
+
+    static std::string addrinfo_to_string(const addrinfo *p) ;
 };
