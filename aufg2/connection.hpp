@@ -13,4 +13,6 @@ public:
 private:
     int file_descriptor{};
     addrinfo *address_info{};
+
+    void print_ip_info(addrinfo *result);
 };
