@@ -9,10 +9,10 @@ Connection::Connection(const std::string& host_address) {
     file_descriptor = socket(AF_INET, SOCK_STREAM, 0);
     struct addrinfo hints{.ai_family = AF_UNSPEC, .ai_socktype = SOCK_STREAM};
     //todo error handling
-    if (!getaddrinfo(host_address.c_str(), "http", &hints, &address_info)){
+    if (0 != getaddrinfo(host_address.c_str(), "http", &hints, &address_info)){
         throw std::runtime_error("Could not get adressinfo of '" + host_address + "'");
     }
-    if (!connect(file_descriptor, address_info->ai_addr, address_info->ai_addrlen)){
+    if (0 != connect(file_descriptor, address_info->ai_addr, address_info->ai_addrlen)){
         throw std::runtime_error("Could not connect");
     }
 }
