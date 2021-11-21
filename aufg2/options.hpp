@@ -30,15 +30,15 @@ public:
 
         options.allow_unrecognised_options();
         auto result = options.parse(argc, argv);
-        HandleInfoParamsAndExitIfNeeded(options, result);
-        ValidateAndExitIfNeeded(result);
+        handle_info_params_and_exit_if_needed(options, result);
+        validate_and_exit_if_needed(result);
 
         url = result.unmatched().at(0);
     }
 
 private:
 
-    void ValidateAndExitIfNeeded(const cxxopts::ParseResult &result) const {
+    void validate_and_exit_if_needed(const cxxopts::ParseResult &result) const {
 
         if (result.unmatched().empty()){
             std::cout << "No url provided" << std::endl;
@@ -56,7 +56,7 @@ private:
         }
     }
 
-    static void HandleInfoParamsAndExitIfNeeded(const cxxopts::Options &options, const cxxopts::ParseResult &result) {
+    static void handle_info_params_and_exit_if_needed(const cxxopts::Options &options, const cxxopts::ParseResult &result) {
         if (result.count("help")) {
             std::cout << options.help() << std::endl;
             exit(0);
