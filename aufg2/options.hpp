@@ -11,8 +11,10 @@ public:
     bool verbose{false};
 
     Options(int argc, char **argv) {
-        cxxopts::Options options("snatch", "A simple  HTTP /1.1  client.");
+        cxxopts::Options options("snatch", "A simple HTTP/1.1 client.");
+
         options.add_options()
+
             ("o,output", "Output to FILE instead of stdout",
              cxxopts::value(output))
             ("O,remote-name", "Output to FILE, named like the remote document (extracted from URL), instead of stdout",
@@ -24,39 +26,39 @@ public:
             ("v,verbose", "Produce verbose output to stderr (request and response metadata)",
              cxxopts::value(verbose))
 
+            //info
             ("h,help", "Give this help list")
             ("usage", "Give a short usage message")
-            ("V,version", "Print program version");
+            ("V,version", "Print program version")
 
-        options.allow_unrecognised_options();
+            //positional
+            ("url", "url", cxxopts::value(url));
+
+        options.positional_help("URL");
+
+        options.parse_positional({"url", "others"});
         auto result = options.parse(argc, argv);
+
         handle_info_params_and_exit_if_needed(options, result);
         validate_and_exit_if_needed(result);
-
-        url = result.unmatched().at(0);
     }
 
 private:
 
     void validate_and_exit_if_needed(const cxxopts::ParseResult &result) const {
-
-        if (result.unmatched().empty()){
-            std::cout << "No url provided" << std::endl;
-            exit(1);
+        if (result["others"].count() > 0) {
+            std::cout << "unexpected positional arguments: "
+                      << "'" + result["others"].as<std::string>() + "'"
+                      << std::endl;
         }
-
-        if (result.unmatched().size() != 1){
-            std::cout << "Too many positional parameters" << std::endl;
-            exit(1);
-        }
-
         if (!range.empty() && range.size() != 2) {
             std::cout << "Range needs to 2 items long" << std::endl;
             exit(1);
         }
     }
 
-    static void handle_info_params_and_exit_if_needed(const cxxopts::Options &options, const cxxopts::ParseResult &result) {
+    static void
+    handle_info_params_and_exit_if_needed(const cxxopts::Options &options, const cxxopts::ParseResult &result) {
         if (result.count("help")) {
             std::cout << options.help() << std::endl;
             exit(0);
