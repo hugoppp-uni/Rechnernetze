@@ -3,13 +3,14 @@
 
 class Options {
 public:
+    std::string url;
     std::string output;
     std::string remote_name;
     std::vector<int> range;
     bool slow{false};
     bool verbose{false};
 
-    Options(int argc, char **argv) : output() {
+    Options(int argc, char **argv) {
         cxxopts::Options options("snatch", "A simple  HTTP /1.1  client.");
         options.add_options()
             ("o,output", "Output to FILE instead of stdout",
@@ -27,16 +28,29 @@ public:
             ("usage", "Give a short usage message")
             ("V,version", "Print program version");
 
+        options.allow_unrecognised_options();
         auto result = options.parse(argc, argv);
         HandleInfoParamsAndExitIfNeeded(options, result);
         ValidateAndExitIfNeeded(result);
 
+        url = result.unmatched().at(0);
     }
 
 private:
 
     void ValidateAndExitIfNeeded(const cxxopts::ParseResult &result) const {
-        if (range.size() != 2) {
+
+        if (result.unmatched().empty()){
+            std::cout << "No url provided" << std::endl;
+            exit(1);
+        }
+
+        if (result.unmatched().size() != 1){
+            std::cout << "Too many positional parameters" << std::endl;
+            exit(1);
+        }
+
+        if (!range.empty() && range.size() != 2) {
             std::cout << "Range needs to 2 items long" << std::endl;
             exit(1);
         }
