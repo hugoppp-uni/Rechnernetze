@@ -1,20 +1,23 @@
 #include "options.hpp"
 #include "connection.hpp"
-#include <netdb.h>
+#include "http_request_builder.h"
 
 int main(int argc, char **argv) {
 
     Options opt{argc, argv};
 
-    Connection cnn{"www.scimbe.de"};
-    std::string request =
-        "GET /_index.html HTTP/1.1\r\n"
-        "User-Agent: Wget/1.20.3 (linux-gnu)\r\n"
-        "Range: bytes=0-2234\r\n"
-        "Accept: */*\r\n"
-        "Host: scimbe.de\r\n"
-        "\r\n\r\n";
+    auto url_info = UrlParser::parse(opt.url);
 
-    cnn.send(request);
+    HttpRequestBuilder request{url_info};
+    request.add("Accept", "*/*");
+    if (!opt.range.empty())
+        request.add_range(opt.range);
+
+    Connection cnn{url_info.host};
+
+    const std::string message = request.to_string();
+    if (opt.verbose)
+        std::cout << message << std::endl;
+    cnn.send(message);
     std::cout << cnn.receive();
 }
