@@ -6,7 +6,7 @@ public:
     std::string url;
     std::string output;
     std::string remote_name;
-    std::vector<int> range;
+    std::string range;
     bool slow{false};
     bool verbose{false};
 
@@ -36,7 +36,7 @@ public:
 
         options.positional_help("URL");
 
-        options.parse_positional({"url", "others"});
+        options.parse_positional({"url"});
         auto result = options.parse(argc, argv);
 
         handle_info_params_and_exit_if_needed(options, result);
@@ -46,12 +46,7 @@ public:
 private:
 
     void validate_and_exit_if_needed(const cxxopts::ParseResult &result) const {
-        if (result["others"].count() > 0) {
-            std::cout << "unexpected positional arguments: "
-                      << "'" + result["others"].as<std::string>() + "'"
-                      << std::endl;
-        }
-        if (!range.empty() && range.size() != 2) {
+        if (!range.empty() && !std::regex_match(range, std::regex("\\d*-\\d*"))) {
             std::cout << "Range needs to 2 items long" << std::endl;
             exit(1);
         }
