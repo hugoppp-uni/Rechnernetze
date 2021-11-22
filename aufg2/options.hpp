@@ -46,7 +46,7 @@ public:
 private:
 
     void validate_and_exit_if_needed(const cxxopts::ParseResult &result) const {
-        if (!range.empty() && !std::regex_match(range, std::regex("\\d*-\\d*"))) {
+        if (!range.empty() && !std::regex_match(range, std::regex("\\d*-(?:\\d*)?"))) {
             std::cout << "Range needs to 2 items long" << std::endl;
             exit(1);
         }
