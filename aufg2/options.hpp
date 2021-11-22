@@ -5,8 +5,8 @@ class Options {
 public:
     std::string url;
     std::string output;
-    std::string remote_name;
     std::string range;
+    bool remote_name;
     bool slow{false};
     bool verbose{false};
 
