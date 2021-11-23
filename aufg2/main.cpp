@@ -1,6 +1,7 @@
 #include "options.hpp"
 #include "connection.hpp"
 #include "http_request_builder.h"
+#include "Response.h"
 
 int main(int argc, char **argv) {
 
@@ -17,7 +18,15 @@ int main(int argc, char **argv) {
 
     const std::string message = request.to_string();
     if (opt.verbose)
-        std::cout << message << std::endl;
+        std::cerr << "\n***** REQUEST METADATA *****\n" << message << std::endl;
+
     cnn.send(message);
-    std::cout << cnn.receive();
+
+    std::string response_str = cnn.receive();
+    Response response = Response(response_str);
+
+    if (opt.verbose)
+        std::cerr << "\n***** RESPONSE METADATA *****\n" << response.GetMetadata();
+
+    std::cout << "\n***** RESPONSE PAYLOAD *****\n" << response.GetPayload();
 }

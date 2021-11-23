@@ -3,5 +3,5 @@ project(aufg2)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(aufg2 main.cpp connection.cpp http_request_builder.cpp http_request_builder.h url_info.cpp url_info.hpp)
+add_executable(aufg2 main.cpp connection.cpp http_request_builder.cpp http_request_builder.h url_info.cpp url_info.hpp Response.h Response.cpp)
 target_include_directories(aufg2 PRIVATE lib/cxxopts/include)
