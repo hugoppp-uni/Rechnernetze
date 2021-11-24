@@ -1,12 +1,13 @@
 #pragma once
 #include <netdb.h>
 #include <string>
+#include <vector>
 
 class Connection{
 public:
     Connection(const std::string &host_address);
 
-    std::string receive() const;
+    std::vector<char> receive() const;
     void send(const std::string& message) const;
     virtual ~Connection();
 

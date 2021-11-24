@@ -5,6 +5,9 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <iostream>
+#include <array>
+#include <vector>
+#include <cstring>
 
 Connection::Connection(const std::string &host_address) {
     file_descriptor = socket(AF_INET, SOCK_STREAM, 0);
@@ -23,12 +26,21 @@ Connection::~Connection() {
     freeaddrinfo(address_info);
 }
 
-std::string Connection::receive() const {
-    constexpr int buf_size = 20 * 1024;
-    char response_buffer[buf_size] = {0};
+std::vector<char> Connection::receive() const {
+    std::vector<char> result_buffer;
+    result_buffer.reserve(16 * 1024);
 
-    recv(file_descriptor, response_buffer, buf_size, MSG_WAITALL);
-    return response_buffer;
+    size_t size;
+    std::array<char, 20> recv_buffer{0};
+    while (0 < (size = recv(file_descriptor, &recv_buffer[0], recv_buffer.size(), 0))) {
+        result_buffer.insert(result_buffer.end(), recv_buffer.begin(), recv_buffer.begin() + size);
+    }
+
+    if (size < 0) {
+        std::cerr << "error occurred during receive: " << strerror(errno) << std::endl;
+    }
+
+    return result_buffer;
 }
 
 void Connection::send(const std::string &message) const {

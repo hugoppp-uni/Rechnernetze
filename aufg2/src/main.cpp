@@ -22,7 +22,9 @@ int main(int argc, char **argv) {
 
     cnn.send(message);
 
-    std::string response_str = cnn.receive();
+    std::vector<char> receive_data = cnn.receive();
+
+    std::string response_str = std::string(receive_data.begin(), receive_data.end());
     Response response = Response(response_str);
 
     if (opt.verbose)
