@@ -2,17 +2,20 @@
 #define AUFG2_RESPONSE_H
 
 #include <string>
+#include <vector>
 
 class Response {
 public:
-    Response(const std::string& data);
+    Response(const std::vector<char>& data);
     std::string GetMetadata();
-    std::string GetPayload();
+    std::string GetPayloadAsString();
+    std::vector<char> GetPayloadAsBinary();
 
 private:
     int status_code;
     std::string status_info;
     std::string headers;
-    std::string payload;
+    std::vector<char> payload;
+
 };
 #endif //AUFG2_RESPONSE_H

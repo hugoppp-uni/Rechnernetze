@@ -25,8 +25,19 @@ int main(int argc, char **argv) {
     cnn.send(message);
 
     std::vector<char> receive_data = cnn.receive();
+    Response response = Response(receive_data);
 
-    // Write payload of received response to file, if option -o or -O was provided
+    if (opt.verbose)
+        std::cerr << "\n***** RESPONSE METADATA *****\n" << response.GetMetadata() << std::endl;
+
+    /*
+     * Write payload of received response to file, if option -o or -O was provided
+     *
+     * URL's for testing:
+     * http://scimbe.de/_index.html
+     * http://www.columbia.edu/~fdc/picture-of-something.jpg
+     * http://m.psecn.photoshelter.com/img-get/I0000jS0oRYHLEQw/s/1200/I0000jS0oRYHLEQw.jpg
+     */
     if (!opt.output.empty() || opt.remote_name) {
         std::string filename;
         if (!opt.output.empty()){
@@ -34,22 +45,19 @@ int main(int argc, char **argv) {
         } else {
             filename = url_info.file;
         }
+
         std::ofstream output_file{filename, std::ios::binary};
         if (!output_file){
             std::cerr << "Error opening file '" + filename + "' for writing response data to..." << std::endl;
             return EXIT_FAILURE;
         }
-        for (char c : receive_data) {
+
+        for (char c : response.GetPayloadAsBinary()) {
             output_file << c;
         }
+
+        std::cout << "Payload of reponse was written to file: " + filename << std::endl;
         output_file.close();
     }
 
-    std::string response_str = std::string(receive_data.begin(), receive_data.end());
-    Response response = Response(response_str);
-
-    if (opt.verbose)
-        std::cerr << "\n***** RESPONSE METADATA *****\n" << response.GetMetadata();
-
-    std::cout << "\n***** RESPONSE PAYLOAD *****\n" << response.GetPayload();
 }
