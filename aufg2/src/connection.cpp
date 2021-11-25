@@ -31,7 +31,7 @@ std::vector<char> Connection::receive() const {
     result_buffer.reserve(16 * 1024);
 
     size_t size;
-    std::array<char, 20> recv_buffer{0};
+    std::array<char, 2 * 1024> recv_buffer{0};
     while (0 < (size = recv(file_descriptor, &recv_buffer[0], recv_buffer.size(), 0))) {
         result_buffer.insert(result_buffer.end(), recv_buffer.begin(), recv_buffer.begin() + size); // TODO: Endless loop, when downloading binary (e.g. JPEG file)
     }
