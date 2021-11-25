@@ -10,7 +10,7 @@ UrlInfo UrlParser::parse(const std::string &url) {
     }
 
     std::string host = matches[1];
-    std::string file = matches[2];
+    std::string file = matches[2]; // TODO: File has to be only the string after the last '/'. Currently it is the full path, e.g. "~fdc/picture-of-something.jpg"
 
     return UrlInfo{matches[1], matches[2]};
 
