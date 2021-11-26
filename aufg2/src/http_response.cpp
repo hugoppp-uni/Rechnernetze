@@ -1,8 +1,8 @@
 #include <fstream>
 #include <iostream>
-#include "response.h"
+#include "http_response.h"
 
-Response::Response(const std::vector<char>& data) {
+HttpResponse::HttpResponse(const std::vector<char>& data) {
 
     if (!headers.empty()) {
         headers.clear();
@@ -28,15 +28,15 @@ Response::Response(const std::vector<char>& data) {
     }
 }
 
-std::string Response::get_metadata() {
+std::string HttpResponse::get_metadata() {
     return headers;
 }
 
-std::vector<char> Response::get_payload_as_binary() {
+std::vector<char> HttpResponse::get_payload_as_binary() {
     return payload;
 }
 
-bool Response::write_to_file(const std::string & filename) {
+bool HttpResponse::write_to_file(const std::string & filename) {
     std::ofstream output_file{filename, std::ios::binary};
     if (!output_file){
         std::cerr << "Error opening file '" + filename + "' for writing response data to..." << std::endl;

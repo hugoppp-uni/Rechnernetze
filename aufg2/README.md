@@ -9,8 +9,8 @@
 - Klasse zur Initialisierung eines HTTP-Requests
 - Setzen gewünschter Header-Felder
 
-**Response:**
-- Speichern empfangener Response in separaten Datenstrukturen
+**HttpResponse:**
+- Speichern empfangener HttpResponse in separaten Datenstrukturen
 - Statuscode und textuelle Informationen zum HTTP-Status
 - Header-Informationen
 - Payload: empfangene Nutzdaten
@@ -23,7 +23,7 @@ classDiagram
         +~Connection()
         +GetIpv4Address() string
         +GetIpv6Address() string
-        +HttpGet(Request) Response
+        +HttpGet(Request) HttpResponse
     }
     class Request{
         +string url
@@ -33,20 +33,20 @@ classDiagram
         +multimap<string,string> headers
         +AddHeader(string key, string value) void
     }
-    class Response{
+    class HttpResponse{
         +int status_code
         +string status_info
         +string headers
         +string payload
     }
     Connection ..> Request
-    Connection ..> Response
+    Connection ..> HttpResponse
 ```
 
 # Sequenzdiagramm: Ablauf eines GET-Requests
 - Aufbau der Verbindung über TCP
 - Senden des HTTP-GET-Requests
-- Empfang der HTTP-GET-Response
+- Empfang der HTTP-GET-HttpResponse
 - Schließen der Verbindung über TCP
 ```mermaid
 sequenceDiagram
@@ -62,8 +62,8 @@ sequenceDiagram
     loop while bytes_recvd > 0
         client->>server: recv(CHUNK_SIZE)
         server-->>client: recv(): buffer[CHUNK_SIZE]
-        client->>+client: Response += buffer
-        Note right of client: Append received bytes to Response data
+        client->>+client: HttpResponse += buffer
+        Note right of client: Append received bytes to HttpResponse data
         alt write_to_file
             client->>client: write_to_file(buffer)
         else

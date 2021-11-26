@@ -3,9 +3,9 @@
 #include <string>
 #include <vector>
 
-class Response {
+class HttpResponse {
 public:
-    Response(const std::vector<char>& data);
+    HttpResponse(const std::vector<char>& data);
     std::string get_metadata();
 
     std::vector<char> get_payload_as_binary();

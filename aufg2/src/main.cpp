@@ -1,7 +1,7 @@
 #include "options.hpp"
 #include "connection.hpp"
 #include "http_request_builder.h"
-#include "response.h"
+#include "http_response.h"
 #include <fstream>
 
 void send_request(const Connection &cnn, const std::string &message, bool slow);
@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
 
     Connection cnn{url_info.host};
     send_request(cnn, message, opt.slow);
-    Response response = cnn.receive();
+    HttpResponse response = cnn.receive_http_response();
 
     if (opt.verbose)
         std::cerr << "\n***** RESPONSE METADATA *****\n" << response.get_metadata() << std::endl;

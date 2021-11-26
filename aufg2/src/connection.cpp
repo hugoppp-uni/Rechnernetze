@@ -28,7 +28,7 @@ Connection::~Connection() {
     freeaddrinfo(address_info);
 }
 
-std::vector<char> Connection::receive_internal() const {
+std::vector<char> Connection::receive_bytes() const {
     std::vector<char> result_buffer;
     result_buffer.reserve(16 * 1024);
 
@@ -39,7 +39,7 @@ std::vector<char> Connection::receive_internal() const {
     }
 
     if (size < 0) {
-        std::cerr << "error occurred during receive_internal: " << strerror(errno) << std::endl;
+        std::cerr << "error occurred during receive_bytes: " << strerror(errno) << std::endl;
     }
 
     return result_buffer;
@@ -92,6 +92,6 @@ std::string Connection::addrinfo_to_string(const addrinfo *p) {
     return ipstr;
 }
 
-Response Connection::receive() const {
-    return Response{receive_internal()};
+HttpResponse Connection::receive_http_response() const {
+    return HttpResponse{receive_bytes()};
 }
