@@ -7,7 +7,7 @@ public:
     std::string output;
     std::string range;
     bool remote_name;
-    bool slow{false};
+    bool slow{false}; // TODO: If slow option was set, BYTES and TIMEOUT must be parsed
     bool verbose{false};
 
     Options(int argc, char **argv) {

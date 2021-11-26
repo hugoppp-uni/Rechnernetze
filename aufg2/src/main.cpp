@@ -22,7 +22,12 @@ int main(int argc, char **argv) {
     if (opt.verbose)
         std::cerr << "\n***** REQUEST METADATA *****\n" << message << std::endl;
 
-    cnn.send(message);
+    if (opt.slow) {
+        // TODO: If option --slow was set, call this function with provided parameters (number of bytes per send() and timeout in ms)
+        cnn.send_slow(message, 5, 1000);
+    } else {
+        cnn.send(message);
+    }
 
     std::vector<char> receive_data = cnn.receive();
     Response response = Response(receive_data);

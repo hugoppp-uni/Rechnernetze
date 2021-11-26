@@ -8,6 +8,8 @@
 #include <array>
 #include <vector>
 #include <cstring>
+#include <chrono>
+#include <thread>
 
 Connection::Connection(const std::string &host_address) {
     file_descriptor = socket(AF_INET, SOCK_STREAM, 0);
@@ -46,6 +48,25 @@ std::vector<char> Connection::receive() const {
 void Connection::send(const std::string &message) const {
     const char *string = message.c_str();
     ::send(file_descriptor, string, message.length(), 0);
+}
+
+void Connection::send_slow(const std::string &message, int n_bytes, int timeout_ms) const {
+    std::cout << "Sending message in slow-motion mode (BYTES=" << n_bytes << ", TIMEOUT=" << timeout_ms << "ms)" << std::endl;
+    // If the whole message should be sent at once, use normal send()-method
+    if (n_bytes >= message.length()) {
+        send(message);
+    }
+
+    int bytes_sent = 0;
+    while (bytes_sent < message.length()) {
+        if (bytes_sent + n_bytes >= message.length()){
+            n_bytes = (int) message.length() - bytes_sent;
+        }
+        ::send(file_descriptor, message.substr(bytes_sent, n_bytes).c_str(), n_bytes, 0);
+        std::cout << "   Byte " << bytes_sent << " to " << bytes_sent+n_bytes-1 << " were sent" << std::endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(timeout_ms));
+        bytes_sent += n_bytes;
+    }
 }
 
 void Connection::print_all_ip_info(addrinfo *result) {

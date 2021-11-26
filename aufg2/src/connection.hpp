@@ -9,6 +9,7 @@ public:
 
     std::vector<char> receive() const;
     void send(const std::string& message) const;
+    void send_slow(const std::string& message, int n_bytes, int timeout_ms) const;
     virtual ~Connection();
 
 private:
