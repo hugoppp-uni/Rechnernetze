@@ -10,7 +10,7 @@ add_executable(aufg2
         src/http_request_builder.h
         src/url_info.cpp
         src/url_info.hpp
-        src/Response.h
-        src/Response.cpp
+        src/response.h
+        src/response.cpp
         )
 target_include_directories(aufg2 PRIVATE lib/cxxopts/include)

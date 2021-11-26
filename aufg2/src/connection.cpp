@@ -28,18 +28,18 @@ Connection::~Connection() {
     freeaddrinfo(address_info);
 }
 
-std::vector<char> Connection::receive() const {
+std::vector<char> Connection::receive_internal() const {
     std::vector<char> result_buffer;
     result_buffer.reserve(16 * 1024);
 
     size_t size;
     std::array<char, 2 * 1024> recv_buffer{0};
     while (0 < (size = recv(file_descriptor, &recv_buffer[0], recv_buffer.size(), 0))) {
-        result_buffer.insert(result_buffer.end(), recv_buffer.begin(), recv_buffer.begin() + size); // TODO: Endless loop, when downloading binary (e.g. JPEG file)
+        result_buffer.insert(result_buffer.end(), recv_buffer.begin(), recv_buffer.begin() + size);
     }
 
     if (size < 0) {
-        std::cerr << "error occurred during receive: " << strerror(errno) << std::endl;
+        std::cerr << "error occurred during receive_internal: " << strerror(errno) << std::endl;
     }
 
     return result_buffer;
@@ -51,7 +51,8 @@ void Connection::send(const std::string &message) const {
 }
 
 void Connection::send_slow(const std::string &message, int n_bytes, int timeout_ms) const {
-    std::cout << "Sending message in slow-motion mode (BYTES=" << n_bytes << ", TIMEOUT=" << timeout_ms << "ms)" << std::endl;
+    std::cout << "Sending message in slow-motion mode (BYTES=" << n_bytes << ", TIMEOUT=" << timeout_ms << "ms)"
+              << std::endl;
     // If the whole message should be sent at once, use normal send()-method
     if (n_bytes >= message.length()) {
         send(message);
@@ -59,11 +60,11 @@ void Connection::send_slow(const std::string &message, int n_bytes, int timeout_
 
     int bytes_sent = 0;
     while (bytes_sent < message.length()) {
-        if (bytes_sent + n_bytes >= message.length()){
+        if (bytes_sent + n_bytes >= message.length()) {
             n_bytes = (int) message.length() - bytes_sent;
         }
         ::send(file_descriptor, message.substr(bytes_sent, n_bytes).c_str(), n_bytes, 0);
-        std::cout << "   Byte " << bytes_sent << " to " << bytes_sent+n_bytes-1 << " were sent" << std::endl;
+        std::cout << "   Byte " << bytes_sent << " to " << bytes_sent + n_bytes - 1 << " were sent" << std::endl;
         std::this_thread::sleep_for(std::chrono::milliseconds(timeout_ms));
         bytes_sent += n_bytes;
     }
@@ -89,4 +90,8 @@ std::string Connection::addrinfo_to_string(const addrinfo *p) {
 
     inet_ntop(p->ai_family, addr, ipstr, sizeof(ipstr));
     return ipstr;
+}
+
+Response Connection::receive() const {
+    return Response{receive_internal()};
 }

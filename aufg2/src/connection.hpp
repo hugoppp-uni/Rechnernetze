@@ -2,12 +2,14 @@
 #include <netdb.h>
 #include <string>
 #include <vector>
+#include "response.h"
 
 class Connection{
 public:
     Connection(const std::string &host_address);
 
-    std::vector<char> receive() const;
+    Response receive() const;
+    std::vector<char> receive_internal() const;
     void send(const std::string& message) const;
     void send_slow(const std::string& message, int n_bytes, int timeout_ms) const;
     virtual ~Connection();

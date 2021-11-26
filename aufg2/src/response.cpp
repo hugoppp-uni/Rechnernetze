@@ -1,6 +1,6 @@
-#include "Response.h"
-
-using namespace std;
+#include <fstream>
+#include <iostream>
+#include "response.h"
 
 Response::Response(const std::vector<char>& data) {
 
@@ -28,14 +28,26 @@ Response::Response(const std::vector<char>& data) {
     }
 }
 
-std::string Response::GetMetadata() {
+std::string Response::get_metadata() {
     return headers;
 }
 
-std::string Response::GetPayloadAsString() {
-    return {payload.begin(), payload.end()};
+std::vector<char> Response::get_payload_as_binary() {
+    return payload;
 }
 
-std::vector<char> Response::GetPayloadAsBinary() {
-    return payload;
+bool Response::write_to_file(const std::string & filename) {
+    std::ofstream output_file{filename, std::ios::binary};
+    if (!output_file){
+        std::cerr << "Error opening file '" + filename + "' for writing response data to..." << std::endl;
+        return false;
+    }
+
+    for (char c : get_payload_as_binary()) {
+        output_file << c;
+    }
+
+    std::cout << "Payload of reponse was written to file: " + filename << std::endl;
+    output_file.close();
+    return true;
 }
