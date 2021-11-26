@@ -4,7 +4,7 @@
 #include "http_response.h"
 #include <fstream>
 
-void send_request(const Connection &cnn, const std::string &message, bool slow);
+void send_request(const Connection &cnn, const std::string &message, const Options &options);
 
 std::string build_request(const UrlInfo &url_info, const Options &opt);
 
@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
         std::cerr << "\n***** REQUEST METADATA *****\n" << message << std::endl;
 
     Connection cnn{url_info.host};
-    send_request(cnn, message, opt.slow);
+    send_request(cnn, message, opt);
     HttpResponse response = cnn.receive_http_response();
 
     if (opt.verbose)
@@ -48,10 +48,10 @@ std::string build_request(const UrlInfo &url_info, const Options &opt) {
     return message;
 }
 
-void send_request(const Connection &cnn, const std::string &message, bool slow) {
-    if (slow) {
-        // TODO: If option --slow was set, call this function with provided parameters (number of bytes per send() and timeout in ms)
-        cnn.send_slow(message, 5, 1000);
+void send_request(const Connection &cnn, const std::string &message, const Options &options) {
+    if (options.slow.has_value()) {
+        auto slow_info = options.slow.value();
+        cnn.send_slow(message, slow_info.bytes, slow_info.timeout);
     } else {
         cnn.send(message);
     }
