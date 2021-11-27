@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
     if (opt.verbose)
         std::cerr << "\n***** RESPONSE METADATA *****\n" << response.get_metadata() << std::endl;
 
-    std::string filename = !opt.output.empty() ? opt.output : url_info.file;
+    std::string filename = !opt.output.empty() ? opt.output : url_info.file_name;
     if (!filename.empty() && !response.write_to_file(filename)) {
         return EXIT_FAILURE;
     }

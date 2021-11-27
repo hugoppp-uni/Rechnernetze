@@ -2,7 +2,7 @@
 #include "http_request_builder.h"
 
 HttpRequestBuilder::HttpRequestBuilder(const UrlInfo& url_info) {
-    result_stream << "GET /"<< url_info.file << " HTTP/1.1\r\n";
+    result_stream << "GET /" << url_info.file_path_name << " HTTP/1.1\r\n";
     add("Host", url_info.host);
 }
 

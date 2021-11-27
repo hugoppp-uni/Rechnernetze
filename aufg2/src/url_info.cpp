@@ -10,10 +10,9 @@ UrlInfo UrlParser::parse(const std::string &url) {
     }
 
     std::string host = matches[1];
-    std::string file = matches[2]; // TODO: File has to be only the string after the last '/'. Currently it is the full path, e.g. "~fdc/picture-of-something.jpg"
+    std::string full_file_name = matches[2]; // TODO: File has to be only the string after the last '/'. Currently it is the full path, e.g. "~fdc/picture-of-something.jpg"
+    std::string file_name = url.substr(url.find_last_of('/') + 1);
 
-    return UrlInfo{matches[1], matches[2]};
+    return UrlInfo{.host = matches[1], .file_path_name = matches[2], .file_name = file_name};
 
 }
-
-UrlInfo::UrlInfo(const std::string &host, const std::string &file) : host(host), file(file) {}

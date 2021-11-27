@@ -3,9 +3,15 @@
 
 struct UrlInfo{
     const std::string host;
-    const std::string file;
+    /*
+     * The absolute path of the file, including the extension
+     */
+    const std::string file_path_name;
+    /*
+     * The name of the file, including the extension
+     */
+    const std::string file_name;
 
-    UrlInfo(const std::string &host, const std::string &file);
 };
 
 class UrlParser {
