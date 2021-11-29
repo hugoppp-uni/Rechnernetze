@@ -11,7 +11,7 @@ void HttpRequestBuilder::add(const std::string &key, const std::string &value) {
 }
 
 std::string HttpRequestBuilder::to_string() {
-    return result_stream.str() + "\r\n\r\n";
+    return result_stream.str() + "\r\n";
 }
 
 void HttpRequestBuilder::add_range(const std::string &value) {

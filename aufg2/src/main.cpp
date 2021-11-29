@@ -31,17 +31,22 @@ int main(int argc, char **argv) {
     if (opt.verbose)
         std::cerr << "\n***** RESPONSE METADATA *****\n" << response.get_metadata() << std::endl;
 
-    std::string filename = !opt.output.empty() ? opt.output : url_info.file_name;
+    std::string filename = !opt.output.empty() ? opt.output
+                                               : opt.remote_name ? url_info.file_name
+                                                                 : "";
+
     if (!filename.empty() && !response.write_to_file(filename)) {
         return EXIT_FAILURE;
+    } else {
+        std::cout << response.get_payload_as_string();
     }
-
 }
 
 std::string build_request(const UrlInfo &url_info, const Options &opt) {
     HttpRequestBuilder request{url_info};
     request.add("Accept", "*/*");
     request.add("User-Agent", "snatch/0.1.0");
+    request.add("Connection", "close");
     if (!opt.range.empty())
         request.add_range(opt.range);
     const std::string message = request.to_string();

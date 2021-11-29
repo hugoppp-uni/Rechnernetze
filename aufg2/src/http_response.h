@@ -9,10 +9,10 @@ public:
     std::string get_metadata();
 
     std::vector<char> get_payload_as_binary();
+    std::string get_payload_as_string();
     bool write_to_file(const std::string& filename);
 
 private:
     std::string header;
     std::vector<char> payload;
-
 };
