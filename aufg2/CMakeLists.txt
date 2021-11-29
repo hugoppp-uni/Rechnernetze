@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.16)
-project(aufg2)
+project(snatch)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(aufg2
+add_executable(snatch
         src/main.cpp
         src/connection.cpp
         src/http_request_builder.cpp
@@ -13,4 +13,4 @@ add_executable(aufg2
         src/http_response.h
         src/http_response.cpp
         )
-target_include_directories(aufg2 PRIVATE lib/cxxopts/include)
+target_include_directories(snatch PRIVATE lib/cxxopts/include)
