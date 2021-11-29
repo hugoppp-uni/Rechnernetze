@@ -4,8 +4,8 @@
 
 HttpResponse::HttpResponse(const std::vector<char>& data) {
 
-    if (!headers.empty()) {
-        headers.clear();
+    if (!header.empty()) {
+        header.clear();
     }
     if (!payload.empty()) {
         payload.clear();
@@ -16,11 +16,11 @@ HttpResponse::HttpResponse(const std::vector<char>& data) {
     for(i = 0; i < data.size(); i++) {
         // If EOF is not reached and there are 2* CRLF, this is the end of the header
         if ( i+4 <= data.size() && data[i]=='\r' && data[i+1]=='\n' && data[i+2]=='\r' && data[i+3]=='\n' ){
-            headers += "\r\n";
+            header += "\r\n";
             i += 4; // Move index to begin of payload
             break;
         }
-        headers += data[i];
+        header += data[i];
     }
 
     for(; i < data.size(); i++) {
@@ -29,7 +29,7 @@ HttpResponse::HttpResponse(const std::vector<char>& data) {
 }
 
 std::string HttpResponse::get_metadata() {
-    return headers;
+    return header;
 }
 
 std::vector<char> HttpResponse::get_payload_as_binary() {

@@ -30,13 +30,13 @@ classDiagram
         +string resource
         +string method
         +string http_version
-        +multimap<string,string> headers
+        +multimap<string,string> header
         +AddHeader(string key, string value) void
     }
     class HttpResponse{
         +int status_code
         +string status_info
-        +string headers
+        +string header
         +string payload
     }
     Connection ..> Request

@@ -12,7 +12,7 @@ public:
     bool write_to_file(const std::string& filename);
 
 private:
-    std::string headers;
+    std::string header;
     std::vector<char> payload;
 
 };
