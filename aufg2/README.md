@@ -62,14 +62,14 @@ sequenceDiagram
     loop while bytes_recvd > 0
         client->>server: recv(CHUNK_SIZE)
         server-->>client: recv(): buffer[CHUNK_SIZE]
-        client->>+client: HttpResponse += buffer
-        Note right of client: Append received bytes to HttpResponse data
-        alt write_to_file
-            client->>client: write_to_file(buffer)
-        else
-            client->>client: std::cout << buffer
-        end
+        client->>+client: result_buffer += buffer
     end
+        alt write_to_file
+            client->>client: write_to_file(result_buffer)
+        else
+            client->>client: std::cout << result_buffer
+        end
+    
     client->>server: close(ip_addr)
     server-->>client: close(): SUCCESS
 ```
