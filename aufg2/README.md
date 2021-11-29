@@ -14,34 +14,8 @@
 - Statuscode und textuelle Informationen zum HTTP-Status
 - Header-Informationen
 - Payload: empfangene Nutzdaten
-```mermaid
-classDiagram
-    class Connection{
-        +string url
-        +addrinfo* address_info
-        +Connection(string hostname)
-        +~Connection()
-        +GetIpv4Address() string
-        +GetIpv6Address() string
-        +HttpGet(Request) HttpResponse
-    }
-    class Request{
-        +string url
-        +string resource
-        +string method
-        +string http_version
-        +multimap<string,string> header
-        +AddHeader(string key, string value) void
-    }
-    class HttpResponse{
-        +int status_code
-        +string status_info
-        +string header
-        +string payload
-    }
-    Connection ..> Request
-    Connection ..> HttpResponse
-```
+
+![Class Diagram](ClassDiagram.png "UML Class Diagram")
 
 # Sequenzdiagramm: Ablauf eines GET-Requests
 - Aufbau der Verbindung über TCP
