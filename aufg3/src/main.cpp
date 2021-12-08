@@ -8,7 +8,7 @@
 /*
  * For now, you can test this with netcat:
  * 1. http_server /home -p 8080
- * 2. netcat localhost 8080
+ * 2. echo -n "my request string" | netcat -N localhost 8080
  */
 int main(int argc, char **argv) {
 
@@ -21,8 +21,10 @@ int main(int argc, char **argv) {
 
     std::unique_ptr<ClientConnection> cnn = listener.accept_next_connection(20);
 
-    if (nullptr != cnn) {
-        std::cout << "Client connected from " << cnn->str() << std::endl;
+    if (cnn) {
+        std::cout << "Client connected from " << cnn->str() << ", receiving data" << std::endl;
+        const std::vector<char> &vector = cnn->receive_bytes();
+        std::cout << "Data: '"<< std::string(vector.begin(), vector.end()) << "'" << std::endl;
     } else {
         std::cout << "Error while accepting client connection" << std::endl;
     }

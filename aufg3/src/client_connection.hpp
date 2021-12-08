@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <netdb.h>
 #include <string>
+#include <vector>
 
 class ClientConnection {
 public:
@@ -10,8 +11,8 @@ public:
 
     virtual ~ClientConnection();
 
-
     std::string str();
+    [[nodiscard]] std::vector<char> receive_bytes() const;
 
 private:
     struct sockaddr socket_address{};
