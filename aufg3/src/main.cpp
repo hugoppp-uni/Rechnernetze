@@ -19,12 +19,11 @@ int main(int argc, char **argv) {
 
     ConnectionListener listener = ConnectionListener{opt.port.value()};
 
-    std::unique_ptr<ClientConnection> cnn = listener.accept_next_connection(20);
+    std::unique_ptr<Connection> cnn = listener.accept_next_connection(20);
 
     if (cnn) {
-        std::cout << "Client connected from " << cnn->str() << ", receiving data" << std::endl;
-        const std::vector<char> &vector = cnn->receive_bytes();
-        std::cout << "Data: '"<< std::string(vector.begin(), vector.end()) << "'" << std::endl;
+        std::cout << "Client connected from '" << cnn->str() << "', receiving data" << std::endl;
+        std::cout << "Data: '"<< cnn->receive_string() << std::endl;
     } else {
         std::cout << "Error while accepting client connection" << std::endl;
     }

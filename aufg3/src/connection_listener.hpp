@@ -1,6 +1,6 @@
 #pragma once
 
-#include "client_connection.hpp"
+#include "../../aufg2/src/connection.hpp"
 
 #include <netdb.h>
 #include <optional>
@@ -12,11 +12,9 @@ public:
 
     virtual ~ConnectionListener();
 
-    [[nodiscard]] std::unique_ptr<ClientConnection> accept_next_connection(int backlog) const;
+    [[nodiscard]] std::unique_ptr<Connection> accept_next_connection(int backlog) const;
 
 private:
-
-    explicit ConnectionListener(sockaddr_in server_address, int port);
 
     int file_descriptor{};
     int port;

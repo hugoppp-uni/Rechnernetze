@@ -1,4 +1,5 @@
 #include "connection_listener.hpp"
+#include "../../aufg2/src/connection.hpp"
 
 #include <sys/socket.h>
 #include <memory>
@@ -36,22 +37,23 @@ ConnectionListener::~ConnectionListener() {
     }
 }
 
-std::unique_ptr<ClientConnection> ConnectionListener::accept_next_connection(int backlog) const {
+std::unique_ptr<Connection> ConnectionListener::accept_next_connection(int backlog) const {
     if (0 != ::listen(file_descriptor, backlog)) {
         std::cout << "Could not listen on socket: " << strerror(errno) << std::endl;
         return nullptr;
     }
 
-    sockaddr peer_sockaddr{};
+    auto* peer_sockaddr = new struct sockaddr();
+
     socklen_t peer_socklen{};
-    int peer_file_descriptor = ::accept(file_descriptor, &peer_sockaddr, &peer_socklen);
+    int peer_file_descriptor = ::accept(file_descriptor, peer_sockaddr, &peer_socklen);
 
     if (0 > peer_file_descriptor) {
         std::cout << "Could not accept connection: " << strerror(errno) << std::endl;
         return nullptr;
     }
 
-    return std::make_unique<ClientConnection>(peer_sockaddr, peer_socklen, peer_file_descriptor);
+    return std::make_unique<Connection>(peer_sockaddr, peer_socklen, peer_file_descriptor);
 }
 
 sockaddr_in ConnectionListener::get_server_address(int port) {

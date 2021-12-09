@@ -12,20 +12,40 @@
 #include <thread>
 
 Connection::Connection(const std::string &host_address) {
+
     file_descriptor = socket(AF_INET, SOCK_STREAM, 0);
     struct addrinfo hints{.ai_family = AF_UNSPEC, .ai_socktype = SOCK_STREAM};
+
     //todo error handling
     if (0 != getaddrinfo(host_address.c_str(), "http", &hints, &address_info)) {
         throw std::runtime_error("Could not get adressinfo of '" + host_address + "'");
     }
     if (0 != connect(file_descriptor, address_info->ai_addr, address_info->ai_addrlen)) {
-        throw std::runtime_error("Could not connect to " + addrinfo_to_string(address_info));
+        throw std::runtime_error(
+            "Could not connect to " + addr_to_string(address_info->ai_addr));
     }
+
+    std::cout << "available ip addresses:" << std::endl;
+    print_all_ip_info(address_info);
+
+    this->sockaddr_in_use = address_info->ai_addr;
+    this->sockaddr_in_use_length = address_info->ai_addrlen;
+
+    std::cout << "using ip address:" << std::endl;
+    std::cout << addr_to_string(sockaddr_in_use) << std::endl;
 }
+
+Connection::Connection(struct sockaddr *sockaddr, socklen_t socklen, int file_descriptor) :
+    file_descriptor(file_descriptor), address_info(nullptr), sockaddr_in_use(sockaddr), sockaddr_in_use_length(socklen) {
+}
+
 
 Connection::~Connection() {
     close(file_descriptor);
-    freeaddrinfo(address_info);
+
+    if (nullptr != address_info)
+        freeaddrinfo(address_info);
+    delete sockaddr_in_use;
 }
 
 std::vector<char> Connection::receive_bytes() const {
@@ -72,26 +92,29 @@ void Connection::send_slow(const std::string &message, int n_bytes, int timeout_
 
 void Connection::print_all_ip_info(addrinfo *result) {
     for (addrinfo *p = result; p != nullptr; p = p->ai_next) {
-        std::cout << addrinfo_to_string(p) << std::endl;
+        std::cout << addr_to_string(p->ai_addr) << std::endl;
     }
 }
 
-std::string Connection::addrinfo_to_string(const addrinfo *p) {
-    char ipstr[INET6_ADDRSTRLEN] = {0};
-    void *addr;
+std::string Connection::addr_to_string(const ::sockaddr *sockaddr) {
+    if (sockaddr->sa_family == AF_UNSPEC)
+        return "address family not specified";
 
-    if (p->ai_family == AF_INET) {
-        auto *ipv4 = (struct sockaddr_in *) p->ai_addr;
-        addr = &(ipv4->sin_addr);
-    } else {
-        auto *ipv6 = (struct sockaddr_in6 *) p->ai_addr;
-        addr = &(ipv6->sin6_addr);
-    }
-
-    inet_ntop(p->ai_family, addr, ipstr, sizeof(ipstr));
-    return ipstr;
+    char buffer[INET6_ADDRSTRLEN] = {0};
+    if (nullptr != inet_ntop(sockaddr->sa_family, sockaddr, buffer, sizeof(buffer)))
+        return buffer;
+    return strerror(errno);
 }
 
 HttpResponse Connection::receive_http_response() const {
     return HttpResponse{receive_bytes()};
+}
+
+std::string Connection::receive_string() const {
+    const std::vector<char> vector = receive_bytes();
+    return {vector.begin(), vector.end()};
+}
+
+std::string Connection::str() {
+    return addr_to_string(sockaddr_in_use);
 }
