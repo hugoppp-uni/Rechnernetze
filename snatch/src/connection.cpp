@@ -36,16 +36,20 @@ Connection::Connection(const std::string &host_address) {
 }
 
 Connection::Connection(struct sockaddr *sockaddr, socklen_t socklen, int file_descriptor) :
-    file_descriptor(file_descriptor), address_info(nullptr), sockaddr_in_use(sockaddr), sockaddr_in_use_length(socklen) {
+    file_descriptor(file_descriptor), address_info(nullptr), sockaddr_in_use(sockaddr),
+    sockaddr_in_use_length(socklen) {
 }
 
 
 Connection::~Connection() {
     close(file_descriptor);
 
-    if (nullptr != address_info)
+    if (nullptr != address_info) {
         freeaddrinfo(address_info);
-    delete sockaddr_in_use;
+        sockaddr_in_use = nullptr;
+    } else {
+        delete sockaddr_in_use;
+    }
 }
 
 std::vector<char> Connection::receive_bytes() const {
