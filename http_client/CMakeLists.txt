@@ -11,6 +11,8 @@ add_executable(http_server
         ../snatch/src/connection.hpp
         ../snatch/src/http_response.cpp
         ../snatch/src/http_response.h
+        ../snatch/src/address.cpp
+        ../snatch/src/address.hpp
         )
 
 target_include_directories(http_server PRIVATE lib/cxxopts/include)

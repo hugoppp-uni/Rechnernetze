@@ -1,5 +1,4 @@
 #include "connection_listener.hpp"
-#include "../../snatch/src/connection.hpp"
 
 #include <sys/socket.h>
 #include <memory>
@@ -9,19 +8,17 @@
 #include <unistd.h>
 
 
-int listen(int sockfd, int backlog);
-
-
 ConnectionListener::ConnectionListener(int port) : port(port) {
 
-    auto server_address = get_server_address(port);
+    // When INADDR_ANY is specified in the bind call, the socket will be bound to all local interfaces
+    auto server_addr = Address::get_any_address(port);
 
     file_descriptor = socket(AF_INET, SOCK_STREAM, 0);
     if (0 > file_descriptor) {
         std::cout << "Could not create socket: " << strerror(errno) << std::endl;
         exit(1);
     }
-    if (0 != bind(file_descriptor, (struct sockaddr *) &server_address, sizeof(server_address))) {
+    if (0 != bind(file_descriptor, server_addr->get_sockaddr(), server_addr->get_socklen())) {
         std::cout << "Could not bind socket: " << strerror(errno) << std::endl;
         exit(1);
     }
@@ -53,13 +50,5 @@ std::unique_ptr<Connection> ConnectionListener::accept_next_connection(int backl
         return nullptr;
     }
 
-    return std::make_unique<Connection>(peer_sockaddr, peer_socklen, peer_file_descriptor);
-}
-
-sockaddr_in ConnectionListener::get_server_address(int port) {
-    return sockaddr_in{
-        .sin_family = AF_INET,
-        .sin_port = htons(port),
-        .sin_addr =  {htonl(INADDR_ANY)},
-    };
+    return std::make_unique<Connection>(std::make_shared<Address>(peer_sockaddr, peer_socklen), peer_file_descriptor);
 }

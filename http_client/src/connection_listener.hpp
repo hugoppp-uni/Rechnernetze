@@ -18,8 +18,6 @@ private:
 
     int file_descriptor{};
     int port;
-
-    static sockaddr_in get_server_address(int port);
 };
 
 

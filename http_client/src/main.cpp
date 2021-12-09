@@ -22,8 +22,8 @@ int main(int argc, char **argv) {
     std::unique_ptr<Connection> cnn = listener.accept_next_connection(20);
 
     if (cnn) {
-        std::cout << "Client connected from '" << cnn->str() << "', receiving data" << std::endl;
-        std::cout << "Data: '"<< cnn->receive_string() << std::endl;
+        std::cout << "Client connected from '" << cnn->get_address()->str() << "', receiving data" << std::endl;
+        std::cout << "Data: '"<< cnn->receive_string() << "'" << std::endl;
     } else {
         std::cout << "Error while accepting client connection" << std::endl;
     }
