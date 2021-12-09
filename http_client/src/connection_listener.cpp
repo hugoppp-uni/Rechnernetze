@@ -1,5 +1,5 @@
 #include "connection_listener.hpp"
-#include "../../aufg2/src/connection.hpp"
+#include "../../snatch/src/connection.hpp"
 
 #include <sys/socket.h>
 #include <memory>

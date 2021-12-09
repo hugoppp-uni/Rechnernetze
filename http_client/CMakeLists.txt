@@ -7,10 +7,10 @@ add_executable(http_server
         src/main.cpp
         src/connection_listener.cpp
         src/connection_listener.hpp
-        ../aufg2/src/connection.cpp
-        ../aufg2/src/connection.hpp
-        ../aufg2/src/http_response.cpp
-        ../aufg2/src/http_response.h
+        ../snatch/src/connection.cpp
+        ../snatch/src/connection.hpp
+        ../snatch/src/http_response.cpp
+        ../snatch/src/http_response.h
         )
 
 target_include_directories(http_server PRIVATE lib/cxxopts/include)

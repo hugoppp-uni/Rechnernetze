@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../aufg2/src/connection.hpp"
+#include "../../snatch/src/connection.hpp"
 
 #include <netdb.h>
 #include <optional>
