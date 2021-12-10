@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
     if (opt.verbose)
         std::cerr << "\n***** REQUEST METADATA *****\n" << message << std::endl;
 
-    Connection cnn{std::make_shared<Address>(url_info.host)};
+    Connection cnn{url_info.host};
     send_request(cnn, message, opt);
     HttpResponse response = cnn.receive_http_response();
 

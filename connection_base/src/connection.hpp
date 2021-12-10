@@ -9,7 +9,10 @@
 class Connection{
 public:
     explicit Connection(const std::shared_ptr<Address>& address);
+    explicit Connection(const std::string& host);
+
     Connection(const std::shared_ptr<Address>& address, int file_descriptor);
+
 
     [[nodiscard]] std::vector<char> receive_bytes() const;
     [[nodiscard]] std::string receive_string() const;

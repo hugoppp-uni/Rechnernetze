@@ -10,11 +10,14 @@
 #include <chrono>
 #include <thread>
 
-Connection::Connection(const std::shared_ptr<Address>& address, int file_desciptor) : address(address), file_descriptor(file_desciptor) {
+Connection::Connection(const std::shared_ptr<Address> &address, int file_desciptor) : address(address),
+                                                                                      file_descriptor(file_desciptor) {
 
 }
 
-Connection::Connection(const std::shared_ptr<Address>& address) : address(address) {
+Connection::Connection(const std::string& host) : Connection(std::make_shared<Address>(host)) {}
+
+Connection::Connection(const std::shared_ptr<Address> &address) : address(address) {
 
     file_descriptor = socket(AF_INET, SOCK_STREAM, 0);
     if (0 != connect(file_descriptor, address->get_sockaddr(), address->get_socklen())) {
