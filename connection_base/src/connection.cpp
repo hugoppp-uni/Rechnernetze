@@ -1,4 +1,5 @@
 #include "connection.hpp"
+#include "logger.hpp"
 
 #include <stdexcept>
 #include <unistd.h>
@@ -15,7 +16,7 @@ Connection::Connection(const std::shared_ptr<Address> &address, int file_descipt
 
 }
 
-Connection::Connection(const std::string& host) : Connection(std::make_shared<Address>(host)) {}
+Connection::Connection(const std::string &host) : Connection(std::make_shared<Address>(host)) {}
 
 Connection::Connection(const std::shared_ptr<Address> &address) : address(address) {
 
@@ -25,19 +26,19 @@ Connection::Connection(const std::shared_ptr<Address> &address) : address(addres
             "Could not connect to " + address->str());
     }
 
-    std::cout << "available ip addresses:" << std::endl;
-    address->print_all_ip_addresses();
+//    std::cout << "available ip addresses:" << std::endl;
+//    address->print_all_ip_addresses();
 
-    std::cout << "using ip address:" << std::endl;
-    std::cout << address->str() << std::endl;
+    Logger::info("using ip address: " + address->str());
 }
 
 
 Connection::~Connection() {
     if (0 != ::close(file_descriptor)) {
-        std::cout << "Could not close socket " << file_descriptor << " :" << strerror(errno) << std::endl;
+        Logger::error("Could not close socket " + std::to_string(file_descriptor) + " :"
+                      + strerror(errno));
     } else {
-        std::cout << "Disconnected from '" << address->str() << "'" << std::endl;
+        Logger::info("Disconnected from '" + address->str() + "'");
     }
 }
 
@@ -64,8 +65,8 @@ void Connection::send(const std::string &message) const {
 }
 
 void Connection::send_slow(const std::string &message, int n_bytes, int timeout_ms) const {
-    std::cout << "Sending message in slow-motion mode (BYTES=" << n_bytes << ", TIMEOUT=" << timeout_ms << "ms)"
-              << std::endl;
+    Logger::info("Sending message in slow-motion mode (BYTES=" + std::to_string(n_bytes) +
+                 ", TIMEOUT=" + std::to_string(timeout_ms) + "ms)");
     // If the whole message should be sent at once, use normal send()-method
     if (n_bytes >= message.length()) {
         send(message);
@@ -77,7 +78,8 @@ void Connection::send_slow(const std::string &message, int n_bytes, int timeout_
             n_bytes = (int) message.length() - bytes_sent;
         }
         ::send(file_descriptor, message.substr(bytes_sent, n_bytes).c_str(), n_bytes, 0);
-        std::cout << "   Byte " << bytes_sent << " to " << bytes_sent + n_bytes - 1 << " were sent" << std::endl;
+        Logger::info("   Byte " + std::to_string(bytes_sent) + " to " +
+                     std::to_string(bytes_sent + n_bytes - 1) + " were sent");
         std::this_thread::sleep_for(std::chrono::milliseconds(timeout_ms));
         bytes_sent += n_bytes;
     }

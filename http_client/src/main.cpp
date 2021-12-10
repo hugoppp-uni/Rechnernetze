@@ -1,5 +1,6 @@
 #include <iostream>
 #include <thread>
+#include "logger.hpp"
 
 #include "options.hpp"
 #include "connection_listener.hpp"
@@ -14,6 +15,9 @@ void handle_incoming_requests(const ConnectionListener &listener);
 int main(int argc, char **argv) {
 
     Options opt{argc, argv};
+
+    Logger::set_logfile(opt.logfile.has_value() ? opt.logfile.value() : "");
+    Logger::set_log_to_console(!opt.logfile.has_value());
 
     if (!opt.port.has_value())
         opt.port = 8080;
@@ -46,11 +50,13 @@ void handle_incoming_requests(const ConnectionListener &listener) {
     std::unique_ptr<Connection> cnn = listener.accept_next_connection();
     if (cnn) {
         std::thread{[cnn = std::move(cnn)] {
-            std::cout << "Client connected from '" << cnn->get_address()->str() << "', receiving data" << std::endl;
-            std::cout << "Data: '" << cnn->receive_string() << "'" << std::endl;
+            Logger::info("Client connected from '" + cnn->get_address()->str() + "', receiving data");
+#ifndef NDEBUG
+            Logger::data(cnn->receive_string());
+#endif
             std::this_thread::sleep_for(std::chrono::seconds(4));
         }}.detach(); // <- just detach for now (aka do not terminate thread when it goes out of scope)
     } else {
-        std::cout << "Error while accepting client connection" << std::endl;
+        Logger::error("Error while accepting client connection");
     }
 }

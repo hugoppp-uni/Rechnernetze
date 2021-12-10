@@ -1,6 +1,7 @@
 #include <fstream>
 #include <iostream>
 #include "http_response.hpp"
+#include "logger.hpp"
 
 HttpResponse::HttpResponse(const std::vector<char> &data) {
 
@@ -56,7 +57,7 @@ bool HttpResponse::write_to_file(const std::string &filename) {
         output_file << c;
     }
 
-    std::cout << "Payload of reponse was written to file: " + filename << std::endl;
+    Logger::info( "Payload of reponse was written to file: " + filename);
     output_file.close();
     return true;
 }

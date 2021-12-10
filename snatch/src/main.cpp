@@ -3,6 +3,7 @@
 #include "http_request_builder.h"
 #include "http_response.hpp"
 #include <fstream>
+#include "logger.hpp"
 
 void send_request(const Connection &cnn, const std::string &message, const Options &options);
 
@@ -17,6 +18,8 @@ std::string build_request(const UrlInfo &url_info, const Options &opt);
 int main(int argc, char **argv) {
 
     Options opt{argc, argv};
+
+    Logger::set_log_to_console(opt.verbose);
 
     auto url_info = UrlParser::parse(opt.url);
     std::string message = build_request(url_info, opt);

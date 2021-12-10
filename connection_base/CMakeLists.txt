@@ -10,4 +10,4 @@ add_library(connection_base STATIC
         src/http_response.cpp
         src/address.cpp
         src/address.hpp
-        )
+        src/logger.hpp)

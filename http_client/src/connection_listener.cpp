@@ -1,4 +1,5 @@
 #include "connection_listener.hpp"
+#include "logger.hpp"
 
 #include <sys/socket.h>
 #include <memory>
@@ -6,7 +7,6 @@
 #include <cstring>
 #include <iostream>
 #include <unistd.h>
-
 
 
 ConnectionListener::ConnectionListener(int port, int backlog) : port(port) {
@@ -28,7 +28,7 @@ ConnectionListener::ConnectionListener(int port, int backlog) : port(port) {
         exit(1);
     }
 
-    std::cout << "Listening on port " << port << std::endl;
+    Logger::info("Listening on port " + std::to_string(port));
 }
 
 ConnectionListener::~ConnectionListener() {
@@ -45,7 +45,7 @@ std::unique_ptr<Connection> ConnectionListener::accept_next_connection() const {
         if (errno == EBADF) // EBADF: sockfd is not an open file descriptor
             throw ListenerClosedException{};
 
-        std::cout << "Could not accept connection: " << strerror(errno) << std::endl;
+        Logger::error("Could not accept connection: " + std::string(strerror(errno)));
         return nullptr;
     }
 
@@ -58,8 +58,9 @@ void ConnectionListener::close() const {
     ::shutdown(file_descriptor, SHUT_RD);
 
     if (0 != ::close(file_descriptor)) {
-        std::cout << "Could not close socket " << file_descriptor << " :" << strerror(errno) << std::endl;
+        Logger::error("Could not close socket " + std::to_string(file_descriptor) + " :"
+                      + std::string(strerror(errno)));
     } else {
-        std::cout << "No longer listening on port " << port << std::endl;
+        Logger::info("No longer listening on port " + std::to_string(port));
     }
 }
