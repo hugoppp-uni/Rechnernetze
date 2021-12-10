@@ -1,8 +1,7 @@
 #include <iostream>
-#include "options.hpp"
-
 #include <thread>
 
+#include "options.hpp"
 #include "connection_listener.hpp"
 
 void handle_incoming_requests(const ConnectionListener &listener);
@@ -20,24 +19,37 @@ int main(int argc, char **argv) {
         opt.port = 8080;
 
     ConnectionListener listener = ConnectionListener{opt.port.value()};
+    std::thread listener_thread{[&listener] {
 
-    while (true) {
-        handle_incoming_requests(listener);
+        bool running = true;
+        while (running) {
+            try {
+                handle_incoming_requests(listener);
+            } catch (ListenerClosedException &) {
+                running = false;
+            }
+        }
+
+    }};
+
+    int c{0};
+    while (c != 'q') {
+        c = getchar();
+        listener.close();
     }
 
+    listener_thread.join();
     return 0;
 }
 
 void handle_incoming_requests(const ConnectionListener &listener) {
-    std::unique_ptr<Connection> cnn = listener.accept_next_connection(20);
+    std::unique_ptr<Connection> cnn = listener.accept_next_connection();
     if (cnn) {
-        //todo start a thread that handles the connection
-        std::thread{[cnn = std::move(cnn)]{
-
+        std::thread{[cnn = std::move(cnn)] {
             std::cout << "Client connected from '" << cnn->get_address()->str() << "', receiving data" << std::endl;
             std::cout << "Data: '" << cnn->receive_string() << "'" << std::endl;
             std::this_thread::sleep_for(std::chrono::seconds(4));
-        }}.detach(); // <- just detach for nos out of scope but the actual thread will keep on running until its instruction completes.w
+        }}.detach(); // <- just detach for now (aka do not terminate thread when it goes out of scope)
     } else {
         std::cout << "Error while accepting client connection" << std::endl;
     }

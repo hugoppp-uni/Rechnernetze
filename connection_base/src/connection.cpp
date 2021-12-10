@@ -34,8 +34,11 @@ Connection::Connection(const std::shared_ptr<Address> &address) : address(addres
 
 
 Connection::~Connection() {
-    close(file_descriptor);
-
+    if (0 != ::close(file_descriptor)) {
+        std::cout << "Could not close socket " << file_descriptor << " :" << strerror(errno) << std::endl;
+    } else {
+        std::cout << "Disconnected from '" << address->str() << "'" << std::endl;
+    }
 }
 
 std::vector<char> Connection::receive_bytes() const {

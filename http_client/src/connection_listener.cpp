@@ -8,7 +8,8 @@
 #include <unistd.h>
 
 
-ConnectionListener::ConnectionListener(int port) : port(port) {
+
+ConnectionListener::ConnectionListener(int port, int backlog) : port(port) {
 
     // When INADDR_ANY is specified in the bind call, the socket will be bound to all local interfaces
     auto server_addr = Address::get_any_address(port);
@@ -22,33 +23,43 @@ ConnectionListener::ConnectionListener(int port) : port(port) {
         std::cout << "Could not bind socket: " << strerror(errno) << std::endl;
         exit(1);
     }
+    if (0 != ::listen(file_descriptor, backlog)) {
+        std::cout << "Could not listen on socket: " << strerror(errno) << std::endl;
+        exit(1);
+    }
 
     std::cout << "Listening on port " << port << std::endl;
 }
 
 ConnectionListener::~ConnectionListener() {
-    if (0 != close(file_descriptor)) {
-        std::cout << "Could not close socket " << file_descriptor << " :" << strerror(errno) << std::endl;
-    } else {
-        std::cout << "No longer listening on port " << port << std::endl;
-    }
+    close();
 }
 
-std::unique_ptr<Connection> ConnectionListener::accept_next_connection(int backlog) const {
-    if (0 != ::listen(file_descriptor, backlog)) {
-        std::cout << "Could not listen on socket: " << strerror(errno) << std::endl;
-        return nullptr;
-    }
-
-    auto* peer_sockaddr = new struct sockaddr();
+std::unique_ptr<Connection> ConnectionListener::accept_next_connection() const {
+    auto *peer_sockaddr = new struct sockaddr();
 
     socklen_t peer_socklen{};
     int peer_file_descriptor = ::accept(file_descriptor, peer_sockaddr, &peer_socklen);
 
     if (0 > peer_file_descriptor) {
+        if (errno == EBADF) // EBADF: sockfd is not an open file descriptor
+            throw ListenerClosedException{};
+
         std::cout << "Could not accept connection: " << strerror(errno) << std::endl;
         return nullptr;
     }
 
     return std::make_unique<Connection>(std::make_shared<Address>(peer_sockaddr, peer_socklen), peer_file_descriptor);
+}
+
+void ConnectionListener::close() const {
+
+    //this is needed to cause EBADF error and exit from accept
+    ::shutdown(file_descriptor, SHUT_RD);
+
+    if (0 != ::close(file_descriptor)) {
+        std::cout << "Could not close socket " << file_descriptor << " :" << strerror(errno) << std::endl;
+    } else {
+        std::cout << "No longer listening on port " << port << std::endl;
+    }
 }
