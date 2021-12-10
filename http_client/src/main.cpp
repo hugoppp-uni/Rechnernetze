@@ -9,7 +9,7 @@ void handle_incoming_requests(const ConnectionListener &listener);
 /*
  * For now, you can test this with netcat:
  * 1. http_server /home -p 8080
- * 2. echo -n "my request string" | netcat -N localhost 8080
+ * 2. echo -n "number 1" | netcat -N localhost 8080 & echo -n "number 2" | netcat -N localhost 8080
  */
 int main(int argc, char **argv) {
 
@@ -35,9 +35,9 @@ int main(int argc, char **argv) {
     int c{0};
     while (c != 'q') {
         c = getchar();
-        listener.close();
     }
 
+    listener.close();
     listener_thread.join();
     return 0;
 }
