@@ -12,4 +12,6 @@ add_executable(http_server
 target_include_directories(http_server PRIVATE lib/cxxopts/include)
 target_include_directories(http_server PRIVATE ${CMAKE_SOURCE_DIR}/connection_base/src)
 
+find_package(Threads REQUIRED)
+target_link_libraries(http_server PRIVATE Threads::Threads)
 target_link_libraries(http_server PRIVATE connection_base)

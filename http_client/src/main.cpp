@@ -32,8 +32,12 @@ void handle_incoming_requests(const ConnectionListener &listener) {
     std::unique_ptr<Connection> cnn = listener.accept_next_connection(20);
     if (cnn) {
         //todo start a thread that handles the connection
-        std::cout << "Client connected from '" << cnn->get_address()->str() << "', receiving data" << std::endl;
-        std::cout << "Data: '" << cnn->receive_string() << "'" << std::endl;
+        std::thread{[cnn = std::move(cnn)]{
+
+            std::cout << "Client connected from '" << cnn->get_address()->str() << "', receiving data" << std::endl;
+            std::cout << "Data: '" << cnn->receive_string() << "'" << std::endl;
+            std::this_thread::sleep_for(std::chrono::seconds(4));
+        }}.detach(); // <- just detach for nos out of scope but the actual thread will keep on running until its instruction completes.w
     } else {
         std::cout << "Error while accepting client connection" << std::endl;
     }
