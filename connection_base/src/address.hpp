@@ -20,6 +20,9 @@ public :
 
     static std::shared_ptr<Address> get_any_address(int port);
 
+    Address(const Address&) = delete;
+    Address& operator=(const Address&) = delete;
+
 private:
     addrinfo *address_info{};
     ::sockaddr *sockaddr_in_use{};

@@ -12,7 +12,11 @@ public:
 
     virtual ~ConnectionListener();
 
+
     [[nodiscard]] std::unique_ptr<Connection> accept_next_connection(int backlog) const;
+
+    ConnectionListener(const ConnectionListener &) = delete;
+    ConnectionListener &operator=(const ConnectionListener &) = delete;
 
 private:
 

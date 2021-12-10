@@ -12,6 +12,9 @@ public:
     std::string get_payload_as_string();
     bool write_to_file(const std::string& filename);
 
+    HttpResponse(const HttpResponse&) = delete;
+    HttpResponse& operator=(const HttpResponse&) = delete;
+
 private:
     std::string header;
     std::vector<char> payload;
