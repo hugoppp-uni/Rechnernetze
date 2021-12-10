@@ -3,3 +3,4 @@ project(rn)
 
 add_subdirectory(snatch)
 add_subdirectory(http_client)
+add_subdirectory(connection_base)

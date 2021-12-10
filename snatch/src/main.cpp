@@ -1,7 +1,7 @@
 #include "options.hpp"
 #include "connection.hpp"
 #include "http_request_builder.h"
-#include "http_response.h"
+#include "http_response.hpp"
 #include <fstream>
 
 void send_request(const Connection &cnn, const std::string &message, const Options &options);

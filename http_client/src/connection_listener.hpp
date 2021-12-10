@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../snatch/src/connection.hpp"
+#include "connection.hpp"
 
 #include <netdb.h>
 #include <optional>
