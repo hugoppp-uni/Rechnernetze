@@ -45,6 +45,7 @@ std::unique_ptr<Connection> ConnectionListener::accept_next_connection() const {
     int peer_file_descriptor = ::accept(file_descriptor, peer_sockaddr, &peer_socklen);
 
     if (0 > peer_file_descriptor) {
+        delete peer_sockaddr;
         if (errno == EINVAL) // Socket is not listening for connections, or addrlen is invalid (e.g., is negative).
             throw ListenerClosedException{};
 
@@ -52,6 +53,7 @@ std::unique_ptr<Connection> ConnectionListener::accept_next_connection() const {
         return nullptr;
     }
 
+    //address dtor will handle deleting sockaddr here from here on
     return std::make_unique<Connection>(std::make_shared<Address>(peer_sockaddr, peer_socklen), peer_file_descriptor);
 }
 
