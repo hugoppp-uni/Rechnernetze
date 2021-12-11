@@ -32,7 +32,10 @@ ConnectionListener::ConnectionListener(int port, int backlog) : port(port) {
 }
 
 ConnectionListener::~ConnectionListener() {
-    close();
+    if (0 != ::close(file_descriptor)) {
+        Logger::error("Could not close socket " + std::to_string(file_descriptor) + " :"
+                      + std::string(strerror(errno)));
+    }
 }
 
 std::unique_ptr<Connection> ConnectionListener::accept_next_connection() const {
@@ -42,7 +45,7 @@ std::unique_ptr<Connection> ConnectionListener::accept_next_connection() const {
     int peer_file_descriptor = ::accept(file_descriptor, peer_sockaddr, &peer_socklen);
 
     if (0 > peer_file_descriptor) {
-        if (errno == EBADF) // EBADF: sockfd is not an open file descriptor
+        if (errno == EINVAL) // Socket is not listening for connections, or addrlen is invalid (e.g., is negative).
             throw ListenerClosedException{};
 
         Logger::error("Could not accept connection: " + std::string(strerror(errno)));
@@ -53,14 +56,7 @@ std::unique_ptr<Connection> ConnectionListener::accept_next_connection() const {
 }
 
 void ConnectionListener::close() const {
-
     //this is needed to cause EBADF error and exit from accept
     ::shutdown(file_descriptor, SHUT_RD);
-
-    if (0 != ::close(file_descriptor)) {
-        Logger::error("Could not close socket " + std::to_string(file_descriptor) + " :"
-                      + std::string(strerror(errno)));
-    } else {
-        Logger::info("No longer listening on port " + std::to_string(port));
-    }
+    Logger::info("No longer listening on port " + std::to_string(port));
 }

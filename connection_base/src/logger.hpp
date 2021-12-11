@@ -31,6 +31,8 @@ class Logger {
                 return "[INFO] ";
             case level::DATA:
                 return "[DATA] ";
+            default:
+                return "[UNKNOWN] ";
         }
     }
 
