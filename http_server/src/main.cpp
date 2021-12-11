@@ -13,7 +13,7 @@ void remove_handler_thread(std::thread::id id);
 std::list<std::thread> running_handler_threads{};
 std::mutex handler_threads_mutex{};
 
-std::atomic<bool> remove_handler_threads_on_completion{true};
+bool remove_handler_threads_on_completion{true};
 
 /*
  * For now, you can test this with netcat:
@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
 
     Logger::set_logfile(opt.logfile.has_value() ? opt.logfile.value() : "");
     Logger::set_log_to_console(!opt.logfile.has_value());
-    Logger::set_level(Logger::level::WARN);
+    Logger::set_level(Logger::level::DATA);
 
     if (!opt.port.has_value())
         opt.port = 8080;
@@ -54,7 +54,11 @@ int main(int argc, char **argv) {
     listener.close();
     listener_thread.join();
 
-    remove_handler_threads_on_completion = false;
+    {
+        std::lock_guard<std::mutex> lock{handler_threads_mutex};
+        remove_handler_threads_on_completion = false;
+    }
+
     if (!running_handler_threads.empty())
         Logger::warn(
             "Waiting for " + std::to_string(running_handler_threads.size()) + " active requests to complete...");
@@ -72,12 +76,14 @@ int main(int argc, char **argv) {
 
 void handle_incoming_requests(std::unique_ptr<Connection> cnn) {
     if (cnn) {
+        std::lock_guard<std::mutex> lock{ handler_threads_mutex };
         running_handler_threads.emplace_back(std::thread{[cnn = std::move(cnn)] {
 
             Logger::info("Client connected from '" + cnn->get_address()->str() + "', receiving data");
             Logger::data(cnn->receive_string());
             std::this_thread::sleep_for(std::chrono::seconds(4));
 
+            std::lock_guard<std::mutex> lock{ handler_threads_mutex };
             if (remove_handler_threads_on_completion) {
                 remove_handler_thread(std::this_thread::get_id());
             }
@@ -88,7 +94,6 @@ void handle_incoming_requests(std::unique_ptr<Connection> cnn) {
 }
 
 void remove_handler_thread(std::thread::id id) {
-    std::lock_guard<std::mutex> lock(handler_threads_mutex);
     auto iter = std::find_if(running_handler_threads.begin(), running_handler_threads.end(),
                              [id](std::thread &t) { return (t.get_id() == id); });
     if (iter != running_handler_threads.end()) {

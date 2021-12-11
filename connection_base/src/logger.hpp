@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <mutex>
 
 
 class Logger {
@@ -16,6 +17,7 @@ public:
 
 private:
 
+    std::mutex handler_threads_mutex{};
     std::string logfile{};
     bool log_to_console{};
     level minimal_log_level{level::INFO};
@@ -46,11 +48,14 @@ private:
 
         std::stringstream stringstream;
 
-        auto t = std::time(nullptr);
-        auto local_time = *std::localtime(&t);
-
         stringstream << level_str(log_level);
-        stringstream << '[' << std::put_time(&local_time, "%F %T") << "] ";
+        {
+            std::lock_guard<std::mutex> lock{handler_threads_mutex};
+            auto t = std::time(nullptr);
+            //localtime is not thread safe
+            auto local_time = *std::localtime(&t);
+            stringstream << '[' << std::put_time(&local_time, "%F %T") << "] ";
+        }
         stringstream << log << std::endl;
 
         if (log_to_console)
