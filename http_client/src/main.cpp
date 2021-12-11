@@ -26,6 +26,7 @@ int main(int argc, char **argv) {
 
     Logger::set_logfile(opt.logfile.has_value() ? opt.logfile.value() : "");
     Logger::set_log_to_console(!opt.logfile.has_value());
+    Logger::set_level(Logger::level::WARN);
 
     if (!opt.port.has_value())
         opt.port = 8080;
@@ -38,7 +39,6 @@ int main(int argc, char **argv) {
             try {
                 handle_incoming_requests(listener.accept_next_connection());
             } catch (ListenerClosedException &) {
-
                 running = false;
             }
         }
@@ -75,9 +75,7 @@ void handle_incoming_requests(std::unique_ptr<Connection> cnn) {
         running_handler_threads.emplace_back(std::thread{[cnn = std::move(cnn)] {
 
             Logger::info("Client connected from '" + cnn->get_address()->str() + "', receiving data");
-#ifndef NDEBUG
             Logger::data(cnn->receive_string());
-#endif
             std::this_thread::sleep_for(std::chrono::seconds(4));
 
             if (remove_handler_threads_on_completion) {

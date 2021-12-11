@@ -28,7 +28,7 @@ ConnectionListener::ConnectionListener(int port, int backlog) : port(port) {
         exit(1);
     }
 
-    Logger::info("Listening on port " + std::to_string(port));
+    Logger::warn("Listening on port " + std::to_string(port));
 }
 
 ConnectionListener::~ConnectionListener() {
@@ -58,5 +58,5 @@ std::unique_ptr<Connection> ConnectionListener::accept_next_connection() const {
 void ConnectionListener::close() const {
     //this is needed to cause EBADF error and exit from accept
     ::shutdown(file_descriptor, SHUT_RD);
-    Logger::info("No longer listening on port " + std::to_string(port));
+    Logger::warn("No longer listening on port " + std::to_string(port));
 }
