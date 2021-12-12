@@ -22,16 +22,16 @@ package "connection_base" {
 }
 
 package "http_server"{
-
-class ConnectionListener {
-  - file_descriptor: int
-  - port: int
-  + <<Create>> (port: int, backlog: int)
-  + accept_next_connection() : Connection
-  + shutdown()
+    class ConnectionListener {
+      - file_descriptor: int
+      - port: int
+      + <<Create>> (port: int, backlog: int)
+      + accept_next_connection() : Connection
+      + shutdown()
+    }
 }
 
 ConnectionListener::accept_next_connection ..> Connection : <<creates>>
 
 }
-}
+```

@@ -35,7 +35,7 @@ Connection::Connection(const std::shared_ptr<Address> &address) : address(addres
 
 Connection::~Connection() {
     if (0 != ::close(file_descriptor)) {
-        Logger::error("Could not close socket " + std::to_string(file_descriptor) + " :"
+        Logger::error("Could not shutdown socket " + std::to_string(file_descriptor) + " :"
                       + strerror(errno));
     } else {
         Logger::info("Disconnected from '" + address->str() + "'");

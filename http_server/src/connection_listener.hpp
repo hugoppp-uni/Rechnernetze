@@ -12,7 +12,7 @@ public:
 
     virtual ~ConnectionListener();
 
-    void close() const;
+    void shutdown() const;
 
     [[nodiscard]] std::unique_ptr<Connection> accept_next_connection() const;
 

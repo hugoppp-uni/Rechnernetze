@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
     }
     std::cout << std::endl;
 
-    listener.close();
+    listener.shutdown();
     listener_thread.join();
 
     {
@@ -81,6 +81,7 @@ void handle_incoming_requests(std::unique_ptr<Connection> cnn) {
 
             Logger::info("Client connected from '" + cnn->get_address()->str() + "', receiving data");
             Logger::data(cnn->receive_string());
+            cnn->send("HTTP/1.1 200 OK\r\nsomedata\r\n");
             std::this_thread::sleep_for(std::chrono::seconds(4));
 
             std::lock_guard<std::mutex> lock{ handler_threads_mutex };

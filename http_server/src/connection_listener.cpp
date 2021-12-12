@@ -11,14 +11,14 @@
 
 ConnectionListener::ConnectionListener(int port, int backlog) : port(port) {
 
-    // When INADDR_ANY is specified in the bind call, the socket will be bound to all local interfaces
-    auto server_addr = Address::get_any_address(port);
-
     file_descriptor = socket(AF_INET, SOCK_STREAM, 0);
     if (0 > file_descriptor) {
         std::cout << "Could not create socket: " << strerror(errno) << std::endl;
         exit(1);
     }
+
+    // When INADDR_ANY is specified in the bind call, the socket will be bound to all local interfaces
+    auto server_addr = Address::get_any_address(port);
     if (0 != bind(file_descriptor, server_addr->get_sockaddr(), server_addr->get_socklen())) {
         std::cout << "Could not bind socket: " << strerror(errno) << std::endl;
         exit(1);
@@ -33,14 +33,14 @@ ConnectionListener::ConnectionListener(int port, int backlog) : port(port) {
 
 ConnectionListener::~ConnectionListener() {
     if (0 != ::close(file_descriptor)) {
-        Logger::error("Could not close socket " + std::to_string(file_descriptor) + " :"
+        Logger::error("Could not shutdown socket " + std::to_string(file_descriptor) + " :"
                       + std::string(strerror(errno)));
     }
 }
 
 std::unique_ptr<Connection> ConnectionListener::accept_next_connection() const {
-    auto *peer_sockaddr = new struct sockaddr();
 
+    auto *peer_sockaddr = new struct sockaddr();
     socklen_t peer_socklen{};
     int peer_file_descriptor = ::accept(file_descriptor, peer_sockaddr, &peer_socklen);
 
@@ -57,8 +57,8 @@ std::unique_ptr<Connection> ConnectionListener::accept_next_connection() const {
     return std::make_unique<Connection>(std::make_shared<Address>(peer_sockaddr, peer_socklen), peer_file_descriptor);
 }
 
-void ConnectionListener::close() const {
-    //this is needed to cause EBADF error and exit from accept
+void ConnectionListener::shutdown() const {
+    //this is needed to cause EINVAL error and exit from accept
     ::shutdown(file_descriptor, SHUT_RD);
     Logger::warn("No longer listening on port " + std::to_string(port));
 }
