@@ -62,3 +62,54 @@ bool HttpResponse::write_to_file(const std::string &filename) {
     return true;
 }
 
+void HttpResponse::set_content(const std::vector<char> &data) {
+    payload = data;
+}
+
+void HttpResponse::add_header(const std::string &key, const std::string &value) {
+    header += key + ": " + value + "\r\n";
+}
+
+std::string HttpResponse::get_status_text(HttpResponse::Status &status) {
+    switch (status) {
+        case OK:                        return "OK";
+        case INVALID_CODE:              return "INVALID_CODE";
+        case ACCEPTED:                  return "TODO";
+        case PARTIAL_CONTENT:           return "TODO";
+        case MULTIPLE_CHOICES:          return "TODO";
+        case MOVED_PERMANENTLY:         return "TODO";
+        case BAD_REQUEST:               return "TODO";
+        case UNAUTHORIZED:              return "TODO";
+        case FORBIDDEN:                 return "TODO";
+        case NOT_FOUND:                 return "TODO";
+        case METHOD_NOT_ALLOWED:        return "TODO";
+        case NOT_ACCEPTABLE:            return "TODO";
+        case REQUEST_TIMEOUT:           return "TODO";
+        case UNSUPPORTED_MEDIA_TYPE:    return "TODO";
+        case INTERNAL_SERVER_ERROR:     return "TODO";
+        case NOT_IMPLEMENTED:           return "TODO";
+        case SERVICE_UNAVAILABLE:       return "TODO";
+        case VERSION_NOT_SUPPORTED:     return "TODO";
+    }
+    return "UNKNOWN STATUS CODE";
+}
+
+std::string HttpResponse::build() {
+    result_stream.clear();
+
+    // TODO: return Status-Line + Header + Data
+    // Status-Line = HTTP-Version SP Status-Code SP Reason-Phrase CRLF
+    result_stream << "HTTP/1.1 " << status << " " << get_status_text(status) << " \r\n";
+    result_stream << header << "\r\n" << std::string{payload.begin(), payload.end()};
+    return result_stream.str();
+}
+
+HttpResponse::HttpResponse() {
+    status = INVALID_CODE; // Initially unknown
+}
+
+void HttpResponse::set_status(HttpResponse::Status s) {
+    status = s;
+}
+
+

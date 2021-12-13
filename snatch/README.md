@@ -5,7 +5,7 @@
 - Abfragen von IP-Informationen des Hostname über DNS
 - Durchführen eines HTTP-GET-Requests
 
-**Request:**
+**HttpRequest:**
 - Klasse zur Initialisierung eines HTTP-Requests
 - Setzen gewünschter Header-Felder
 
@@ -31,7 +31,7 @@ sequenceDiagram
     client->>server: connect(ip_addr)
     server-->>client: connect(): SUCCESS
     
-    client-)server: send(Request)
+    client-)server: send(HttpRequest)
     server-->>client: send(): ACK
     loop while bytes_recvd > 0
         client->>server: recv(CHUNK_SIZE)

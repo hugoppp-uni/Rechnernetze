@@ -7,6 +7,8 @@ add_executable(http_server
         src/main.cpp
         src/connection_listener.cpp
         src/connection_listener.hpp
+        src/request_handler.cpp
+        src/request_handler.h
         )
 
 target_include_directories(http_server PRIVATE lib/cxxopts/include)
