@@ -5,7 +5,7 @@ HttpRequest::HttpRequest(std::string const& data) {
     // HttpRequest-Line = Method SP HttpRequest-URI SP HTTP-Version CRLF
     method = GET;
     uri = "index.html";
-    http_version = "HTTP/1.1"
+    http_version = "HTTP/1.1";
 }
 
 HttpRequest::Method HttpRequest::get_method() {
