@@ -6,6 +6,7 @@
 #include "options.hpp"
 #include "connection_listener.hpp"
 #include "../../snatch/src/http_request_builder.h"
+#include "request_handler.h"
 
 void handle_incoming_requests(std::unique_ptr<Connection> cnn);
 
@@ -83,23 +84,11 @@ void handle_incoming_requests(std::unique_ptr<Connection> cnn) {
             Logger::info("Client connected from '" + cnn->get_address()->str() + "', receiving data");
             std::string received = cnn->receive_string();
             Logger::data(received);
-            // Build request out of received data
+
+            // Build request out of received data and handle it
             HttpRequest request{received};
+            handle_request(cnn, &request);
 
-            HttpResponse response;
-            // Check if method is supported (currently only GET)
-            if (request.get_method() != HttpRequest::GET) {
-                response.set_status(HttpResponse::Status::METHOD_NOT_ALLOWED);
-            }
-            // TODO: Get path to file / directory. Check if existing
-            std::string fpath = request.get_uri();
-            response.set_status(HttpResponse::Status::OK);
-            // TODO: Set data for response
-            response.set_content({'d', 'a', 't', 'a'});
-            // Send response
-            cnn->send(response.build());
-
-//            cnn->send("HTTP/1.1 200 OK\r\nsomedata\r\n");
             std::this_thread::sleep_for(std::chrono::seconds(4));
 
             std::lock_guard<std::mutex> lock{ handler_threads_mutex };

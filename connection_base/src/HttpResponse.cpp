@@ -1,6 +1,6 @@
 #include <fstream>
 #include <iostream>
-#include "http_response.hpp"
+#include "HttpResponse.hpp"
 #include "logger.hpp"
 
 HttpResponse::HttpResponse(const std::vector<char> &data) {
@@ -66,6 +66,10 @@ void HttpResponse::set_content(const std::vector<char> &data) {
     payload = data;
 }
 
+void HttpResponse::set_content(const std::string &data) {
+    payload = { data.begin(), data.end() };
+}
+
 void HttpResponse::add_header(const std::string &key, const std::string &value) {
     header += key + ": " + value + "\r\n";
 }
@@ -111,5 +115,6 @@ HttpResponse::HttpResponse() {
 void HttpResponse::set_status(HttpResponse::Status s) {
     status = s;
 }
+
 
 

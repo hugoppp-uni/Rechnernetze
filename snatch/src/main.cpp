@@ -1,7 +1,7 @@
 #include "options.hpp"
 #include "connection.hpp"
 #include "http_request_builder.h"
-#include "http_response.hpp"
+#include "HttpResponse.hpp"
 #include <fstream>
 #include "logger.hpp"
 
