@@ -1,0 +1,201 @@
+{
+  "version": 6,
+  "entities": [
+    {
+      "entity": {
+        "type": "Project",
+        "description": "",
+        "id": "435ed4f2-5240-423d-852d-34f59eb24910",
+        "name": "HTTP Server"
+      },
+      "children": [
+        {
+          "entity": {
+            "type": "Request",
+            "method": {
+              "link": "http://tools.ietf.org/html/rfc7231#section-4.3.1",
+              "name": "GET"
+            },
+            "body": {
+              "formBody": {
+                "overrideContentType": true,
+                "encoding": "application/x-www-form-urlencoded",
+                "items": []
+              },
+              "bodyType": "Text"
+            },
+            "retryConfiguration": {
+              "intervalInSeconds": 10,
+              "retryCount": 1
+            },
+            "uri": {
+              "query": {
+                "delimiter": "&",
+                "items": []
+              },
+              "scheme": {
+                "name": "http",
+                "version": "V11"
+              },
+              "host": "${ip}:${port}",
+              "path": "/pdf"
+            },
+            "id": "873b9177-d532-4d61-97e3-82c2a377496b",
+            "name": "GET Directory Listing",
+            "headers": [],
+            "assertions": [
+              {
+                "comparison": "Equals",
+                "subject": "ResponseHeader",
+                "path": "Content-Type",
+                "value": "text/plain"
+              },
+              {
+                "comparison": "Equals",
+                "subject": "ResponseStatus",
+                "path": "code",
+                "value": "200"
+              },
+              {
+                "comparison": "Exists",
+                "subject": "ResponseBody",
+                "path": "content",
+                "value": ""
+              }
+            ]
+          }
+        },
+        {
+          "entity": {
+            "type": "Request",
+            "method": {
+              "link": "http://tools.ietf.org/html/rfc7231#section-4.3.1",
+              "name": "GET"
+            },
+            "body": {
+              "formBody": {
+                "overrideContentType": true,
+                "encoding": "application/x-www-form-urlencoded",
+                "items": []
+              },
+              "bodyType": "Text"
+            },
+            "retryConfiguration": {
+              "intervalInSeconds": 10,
+              "retryCount": 1
+            },
+            "uri": {
+              "query": {
+                "delimiter": "&",
+                "items": []
+              },
+              "scheme": {
+                "name": "http",
+                "version": "V11"
+              },
+              "host": "${ip}:${port}",
+              "path": "/text/Test.txt"
+            },
+            "id": "f180ec13-7923-4cad-8db4-a9034378b0e4",
+            "name": "GET Test.txt",
+            "headers": [],
+            "assertions": [
+              {
+                "comparison": "Equals",
+                "subject": "ResponseHeader",
+                "path": "Content-Type",
+                "value": "text/plain"
+              },
+              {
+                "comparison": "Equals",
+                "subject": "ResponseStatus",
+                "path": "code",
+                "value": "200"
+              },
+              {
+                "comparison": "Exists",
+                "subject": "ResponseBody",
+                "path": "content",
+                "value": ""
+              }
+            ]
+          }
+        },
+        {
+          "entity": {
+            "type": "Request",
+            "method": {
+              "link": "http://tools.ietf.org/html/rfc7231#section-4.3.1",
+              "name": "GET"
+            },
+            "body": {
+              "formBody": {
+                "overrideContentType": true,
+                "encoding": "application/x-www-form-urlencoded",
+                "items": []
+              },
+              "bodyType": "Text"
+            },
+            "retryConfiguration": {
+              "intervalInSeconds": 10,
+              "retryCount": 1
+            },
+            "uri": {
+              "scheme": {
+                "name": "http",
+                "version": "V11"
+              },
+              "host": "${ip}:${port}",
+              "path": "/mydir"
+            },
+            "id": "910fd0c2-ff62-4e38-a9ac-7ed8b514e135",
+            "name": "GET index.html of Directory",
+            "headers": [],
+            "assertions": [
+              {
+                "comparison": "Equals",
+                "subject": "ResponseHeader",
+                "path": "Content-Type",
+                "value": "text/html"
+              },
+              {
+                "comparison": "Equals",
+                "subject": "ResponseStatus",
+                "path": "code",
+                "value": "200"
+              },
+              {
+                "comparison": "Exists",
+                "subject": "ResponseBody",
+                "path": "content",
+                "value": ""
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "environments": [
+    {
+      "id": "2747162e-ee7d-47b7-a453-a2993c22b9bd",
+      "name": "HTTP Server",
+      "variables": {
+        "7681cad5-7c6b-4af8-ad31-3c2fc6cc4eda": {
+          "createdAt": "2021-10-10T21:17:59.938+02:00",
+          "name": "ip",
+          "value": "localhost",
+          "enabled": true,
+          "private": false
+        },
+        "1ba2aee3-d10b-4e23-99c9-339513fb82cc": {
+          "createdAt": "2021-10-10T21:18:23.667+02:00",
+          "name": "port",
+          "value": "8000",
+          "enabled": true,
+          "private": false
+        }
+      }
+    }
+  ]
+}
