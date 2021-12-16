@@ -1,11 +1,26 @@
+#include <iostream>
+#include <regex>
 #include "HttpRequest.h"
+#include "url_info.hpp"
+
 
 HttpRequest::HttpRequest(std::string const& data) {
-    // TODO: Parse first line of data
-    // HttpRequest-Line = Method SP HttpRequest-URI SP HTTP-Version CRLF
-    method = GET;
-    uri = "index.html";
-    http_version = "HTTP/1.1";
+    // Parse first line of data
+    // Http Request-Line = Method SP HttpRequest-URI SP HTTP-Version CRLF
+    std::regex regex("(GET) (/.+)* (HTTP/1.1)\r");
+    std::smatch matches;
+    std::istringstream iss(data);
+    std::string status_line;
+    std::getline(iss, status_line);
+    std::regex_match(status_line, matches, regex);
+    if (!std::regex_match(status_line, matches, regex) /*|| matches.size() != 3*/) {
+        throw std::invalid_argument("Status-Line");
+    }
+
+    if (matches[1] == "GET")
+        method = GET;
+    uri = matches[2];
+    http_version = matches[3];
 }
 
 HttpRequest::Method HttpRequest::get_method() {

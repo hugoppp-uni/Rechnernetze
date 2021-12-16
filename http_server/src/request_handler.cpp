@@ -12,6 +12,7 @@ int handle_request(const std::unique_ptr<Connection>& cnn, HttpRequest *request)
         response.set_status(HttpResponse::Status::METHOD_NOT_ALLOWED);
         response.add_header("Content-Type", "text/plain");
         response.set_content("Sorry, this method is not allowed. Currently only GET is supported.");
+        cnn->send(response.build());
         return EXIT_FAILURE;
     }
 
