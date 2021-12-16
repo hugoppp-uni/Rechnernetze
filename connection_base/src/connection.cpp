@@ -48,9 +48,10 @@ std::vector<char> Connection::receive_bytes() const {
 
     size_t size;
     std::array<char, 2 * 1024> recv_buffer{0};
-    while (0 < (size = recv(file_descriptor, &recv_buffer[0], recv_buffer.size(), 0))) {
+    do {
+        size = recv(file_descriptor, &recv_buffer[0], recv_buffer.size(), 0);
         result_buffer.insert(result_buffer.end(), recv_buffer.begin(), recv_buffer.begin() + size);
-    }
+    } while ( size > 0 && std::string{result_buffer.end()-3, result_buffer.end()} == "\r\n\r\n" );
 
     if (size < 0) {
         std::cerr << "error occurred during receive_bytes: " << strerror(errno) << std::endl;

@@ -17,6 +17,7 @@ std::mutex handler_threads_mutex{};
 
 bool remove_handler_threads_on_completion{true};
 
+
 /*
  * For now, you can test this with netcat:
  * 1. http_server /home -p 8080
@@ -32,6 +33,8 @@ int main(int argc, char **argv) {
 
     if (!opt.port.has_value())
         opt.port = 8080;
+
+    DOCUMENT_ROOT_FOLDER = opt.document_root_folder;
 
     ConnectionListener listener = ConnectionListener{opt.port.value()};
     std::thread listener_thread{[&listener] {

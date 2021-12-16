@@ -2,6 +2,11 @@
 #include <HttpRequest.h>
 #include <HttpResponse.hpp>
 #include <connection.hpp>
+#include <fstream>
+#include <filesystem>
+
+namespace fs = std::filesystem;
+std::string DOCUMENT_ROOT_FOLDER;
 
 int handle_request(const std::unique_ptr<Connection>& cnn, HttpRequest *request) {
 
@@ -16,26 +21,43 @@ int handle_request(const std::unique_ptr<Connection>& cnn, HttpRequest *request)
         return EXIT_FAILURE;
     }
 
-    std::string fpath = request->get_uri();
     // TODO: Set content of Response according to requested file/directory
     // 1) if fpath has file-ending: Set Content-Type inside header according to file-type, set Payload of Response to file content. If file is not existent, set according Status-Code
     // 2) if fpath is a directory: check if index.html is present inside this directory. If not, set Payload to directory listing as table. If yes, set Payload to index.html content.
+    // Tipp: opendir(), closedir(), readdir() und stat()
 
-    // TODO: WIP
-    if ( !fpath.empty() ) {
+    fs::path path = DOCUMENT_ROOT_FOLDER + request->get_uri();
+    if ( is_directory(path) ) {
+        std::cout << path.string() << " is a directory and exists" << std::endl;
+        path = path.string() + "/index.html";
+        if(exists(path)) {
+            // index.html vorhanden: Sende Datei
+            response.add_header("Content-Type", "text/html");
+            response.set_content("File content of index.html");
+        } else {
+            // index.html vorhanden: Sende Listing der Dateien im Ordner
+            response.add_header("Content-Type", "text/plain");
+            response.set_content("Directory content of " + request->get_uri());
+        }
         response.set_status(HttpResponse::Status::OK);
+    } else if(exists(path)){
+        // File existiert: Content zurückliefern
+        std::cout << path.string() << " is a file and exists" << std::endl;
+//        std::ifstream inf{path};
+        response.set_status(HttpResponse::Status::OK);
+        response.add_header("Content-Type", "text/plain");
         // TODO: Set data for response (content of requested file/directory)
-        std::vector<char> data = {'d', 'a', 't', 'a'};
-        response.set_content(data);
+        response.set_content("File content of " + request->get_uri());
     } else {
+        // File existiert nicht: Directory Listing
+        std::cout << path.string() << " does not exist" << std::endl;
         response.set_status(HttpResponse::Status::BAD_REQUEST);
         response.add_header("Content-Type", "text/plain");
-        response.set_content("Please provide a correct file path");
+        response.set_content("File " + path.string() + " does not exist. Please provide a correct file path");
     }
 
     // Send response
     cnn->send(response.build());
-//    cnn->send("HTTP/1.1 200 OK\r\nsomedata\r\n");
 
     return EXIT_SUCCESS;
 }

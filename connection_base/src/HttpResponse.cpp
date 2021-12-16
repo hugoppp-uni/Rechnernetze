@@ -86,7 +86,7 @@ std::string HttpResponse::get_status_text(HttpResponse::Status &status) {
         case UNAUTHORIZED:              return "TODO";
         case FORBIDDEN:                 return "TODO";
         case NOT_FOUND:                 return "TODO";
-        case METHOD_NOT_ALLOWED:        return "TODO";
+        case METHOD_NOT_ALLOWED:        return "METHOD_NOT_ALLOWED";
         case NOT_ACCEPTABLE:            return "TODO";
         case REQUEST_TIMEOUT:           return "TODO";
         case UNSUPPORTED_MEDIA_TYPE:    return "TODO";

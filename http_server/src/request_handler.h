@@ -9,6 +9,8 @@
 #include <memory>
 #include <connection.hpp>
 
+extern std::string DOCUMENT_ROOT_FOLDER;
+
 int handle_request(const std::unique_ptr<Connection>& cnn, HttpRequest *request);
 
 #endif //RN_REQUEST_HANDLER_H
