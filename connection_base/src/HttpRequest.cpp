@@ -13,7 +13,7 @@ HttpRequest::HttpRequest(std::string const& data) {
     std::cout << "Received Status-Line: " << status_line << std::endl;
     std::regex_match(status_line, matches, regex);
     if (!std::regex_match(status_line, matches, regex) /*|| matches.size() != 3*/) {
-        throw std::invalid_argument("Status-Line");
+        throw std::invalid_argument("Failed to parse Status-Line: " + status_line);
     }
 
     if (matches[1] == "GET")

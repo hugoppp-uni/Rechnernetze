@@ -5,7 +5,6 @@
 
 #include "options.hpp"
 #include "connection_listener.hpp"
-#include "../../snatch/src/http_request_builder.h"
 #include "request_handler.h"
 
 void handle_incoming_requests(std::unique_ptr<Connection> cnn);

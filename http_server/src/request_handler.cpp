@@ -4,9 +4,23 @@
 #include <connection.hpp>
 #include <fstream>
 #include <filesystem>
+#include "logger.hpp"
 
 namespace fs = std::filesystem;
 std::string DOCUMENT_ROOT_FOLDER;
+
+std::vector<char> get_file_content(fs::path& fpath) {
+    std::ifstream inf{fpath, std::ios::in | std::ios::binary};
+    std::vector<char> result;
+
+    // TODO: Am Ende wird ein Zeichen zu viel eingefügt
+    while( !inf.eof() ) {
+        result.insert(result.end(), (char) inf.get());
+    }
+    inf.close();
+
+    return result;
+}
 
 int handle_request(const std::unique_ptr<Connection>& cnn, HttpRequest *request) {
 
@@ -28,21 +42,17 @@ int handle_request(const std::unique_ptr<Connection>& cnn, HttpRequest *request)
 
     fs::path path = DOCUMENT_ROOT_FOLDER + request->get_uri();
     if ( is_directory(path) ) {
-        std::cout << path.string() << " is a directory and exists" << std::endl;
+//        std::cout << path.string() << " is a directory and exists" << std::endl;
+        Logger::info(path.string() + " is a directory and exists");
         fs::path fpath = path.string() + "/index.html";
         if(exists(fpath)) {
             // index.html vorhanden: Sende Datei
-            std::ifstream inf{fpath, std::ios::in | std::ios::binary};
-            std::vector<char> result;
-            // TODO: Am Ende wird ein Zeichen zu viel eingefügt
-            while( !inf.eof() ) {
-                result.insert(result.end(), (char) inf.get());
-            }
-            inf.close();
+            Logger::info("index.html exists");
             response.add_header("Content-Type", "text/html");
-            response.set_content(result);
+            response.set_content(get_file_content(fpath));
         } else {
-            // index.html vorhanden: Sende Listing der Dateien im Ordner
+            // index.html nicht vorhanden: Sende Listing der Dateien im Ordner
+            Logger::warn("index.html does not exist. List directory content...");
             std::string file_listing;
             file_listing.append("Directory content of " + request->get_uri() + ":\n");
             for (const auto & file : std::filesystem::directory_iterator(path)) {
@@ -55,20 +65,14 @@ int handle_request(const std::unique_ptr<Connection>& cnn, HttpRequest *request)
         response.set_status(HttpResponse::Status::OK);
     } else if(exists(path)){
         // File existiert: Content zurückliefern
-        std::cout << path.string() << " is a file and exists" << std::endl;
-        std::ifstream inf{path, std::ios::in | std::ios::binary};
-        std::vector<char> result;
-        // TODO: Am Ende wird ein Zeichen zu viel eingefügt
-        while( !inf.eof() ) {
-            result.insert(result.end(), (char) inf.get());
-        }
-        inf.close();
+        Logger::info(path.string() + " is a file and exists");
         response.add_header("Content-Type", "text/plain");
-        response.set_content(result);
+        response.set_content(get_file_content(path));
         response.set_status(HttpResponse::Status::OK);
     } else {
         // File existiert nicht: Directory Listing
-        std::cout << path.string() << " does not exist -> Get directory listing" << std::endl;
+        std::cout << path.string() << " does not exist." << std::endl;
+        Logger::error("Requested file " + path.string() + " does not exist.");
         response.add_header("Content-Type", "text/plain");
         response.set_content("File " + path.string() + " does not exist. Please provide a correct file path");
         response.set_status(HttpResponse::Status::BAD_REQUEST);
