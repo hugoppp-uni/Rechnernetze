@@ -17,7 +17,7 @@ public:
 
 private:
 
-    std::mutex handler_threads_mutex{};
+    std::mutex mutex{};
     std::string logfile{};
     bool log_to_console{};
     level minimal_log_level{level::INFO};
@@ -43,6 +43,7 @@ private:
     }
 
     void log_internal(const std::string &log, level log_level) {
+        std::lock_guard<std::mutex> lock{mutex};
         if (log_level < this->minimal_log_level)
             return;
 
@@ -50,7 +51,6 @@ private:
 
         stringstream << level_str(log_level);
         {
-            std::lock_guard<std::mutex> lock{handler_threads_mutex};
             auto t = std::time(nullptr);
             //localtime is not thread safe
             auto local_time = *std::localtime(&t);
