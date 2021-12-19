@@ -10,16 +10,14 @@ namespace fs = std::filesystem;
 std::string DOCUMENT_ROOT_FOLDER;
 
 std::vector<char> get_file_content(fs::path& fpath) {
-    std::ifstream inf{fpath, std::ios::in | std::ios::binary};
-    std::vector<char> result;
+    std::istreambuf_iterator<char> test;
 
-    // TODO: Am Ende wird ein Zeichen zu viel eingefügt
-    while( !inf.eof() ) {
-        result.insert(result.end(), (char) inf.get());
-    }
-    inf.close();
+    std::ifstream in(fpath, std::ios::in | std::ios::binary);
+    std::vector<char> contents((std::istreambuf_iterator<char>(in)),
+                         std::istreambuf_iterator<char>());
+    in.close();
 
-    return result;
+    return contents;
 }
 
 int handle_request(const std::unique_ptr<Connection>& cnn, HttpRequest *request) {
