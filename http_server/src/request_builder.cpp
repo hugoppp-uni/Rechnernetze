@@ -4,6 +4,7 @@
 #include <filesystem>
 #include "logger.hpp"
 #include "helper.hpp"
+#include <map>
 
 #define FMT_HEADER_ONLY
 
@@ -85,9 +86,14 @@ std::string ResponseBuilder::get_plain_text_file_listing(const fs::path &dir_pat
                  << separator;
 
     for (const auto &file: std::filesystem::directory_iterator(dir_path)) {
+
+        const std::string &filesize = is_directory(file) ? "" :
+                                      helper::file_size_to_str(file.file_size());
+        const std::string &args = file.path().filename().string() + (is_directory(file) ? "/" : "");
+
         file_listing << fmt::format(table_format,
-                                    file.path().filename().string(),
-                                    helper::file_size_to_str(file.file_size()),
+                                    args,
+                                    filesize,
                                     "(TODO last write time)"
         );
         file_listing << '\n';
@@ -98,9 +104,42 @@ std::string ResponseBuilder::get_plain_text_file_listing(const fs::path &dir_pat
 }
 
 void ResponseBuilder::build_from_file(HttpResponse &response,
-                                      const fs::path &path) {
+                                      const fs::path &file_path) {
 
-    response.add_header("Content-Type", "text/plain");
-    response.set_content(helper::read_file(path));
+    std::string content_type = get_content_type(file_path);
+    response.add_header("Content-Type", content_type);
+    response.set_content(helper::read_file(file_path));
     response.set_status(HttpResponse::OK);
 }
+
+std::string ResponseBuilder::get_content_type(const fs::path &file_path) {
+
+    std::string content_type;
+    if (!file_path.has_extension())
+        content_type = "text/plain";
+    else {
+        content_type = content_type_map[file_path.extension().string()];
+        if (content_type.empty())
+            content_type = "text/plain";
+    }
+
+    return content_type;
+}
+
+
+using ContentTypeMap = std::map<std::string, std::string>;
+ContentTypeMap ResponseBuilder::content_type_map = ContentTypeMap{
+    {".txt",  "text/plain"},
+    {".html", "text/html"},
+    {".xml",  "text/xml"},
+
+    {".jpeg", "image/jpeg"},
+    {".png",  "image/png"},
+    {".svg",  "image/svg+xml"},
+    {".webp", "image/webp"},
+
+    {".mp4",  "video/mp4"},
+
+    {".pdf",  "application/pdf"},
+};
+
