@@ -87,7 +87,7 @@ void handle_incoming_requests(std::unique_ptr<Connection> cnn, const Options &op
             // Build request out of received data and handle it
             HttpRequest request{received};
 
-            std::string response = response_builder::build(request, opt.document_root_folder);
+            std::string response = ResponseBuilder::build(request, opt.document_root_folder);
             cnn->send(response);
 
             if(opt.sleep_after_send > 0)

@@ -1,28 +1,14 @@
 #include "request_builder.h"
 #include <HttpRequest.h>
 #include <HttpResponse.hpp>
-#include <connection.hpp>
 #include <fstream>
 #include <filesystem>
 #include "logger.hpp"
+#include "helper.hpp"
 
 namespace fs = std::filesystem;
-std::string DOCUMENT_ROOT_FOLDER;
 
-namespace response_builder {
-
-std::vector<char> get_file_content(fs::path& fpath) {
-    std::istreambuf_iterator<char> test;
-
-    std::ifstream in(fpath, std::ios::in | std::ios::binary);
-    std::vector<char> contents((std::istreambuf_iterator<char>(in)),
-                         std::istreambuf_iterator<char>());
-    in.close();
-
-    return contents;
-}
-
-std::string build(const HttpRequest &request, const std::string &documents_root) {
+std::string ResponseBuilder::build(const HttpRequest &request, const std::string &documents_root) {
 
     HttpResponse response;
 
@@ -48,7 +34,7 @@ std::string build(const HttpRequest &request, const std::string &documents_root)
             // index.html vorhanden: Sende Datei
             Logger::info("index.html exists");
             response.add_header("Content-Type", "text/html");
-            response.set_content(get_file_content(fpath));
+            response.set_content(helper::read_file(fpath));
         } else {
             // index.html nicht vorhanden: Sende Listing der Dateien im Ordner
             Logger::warn("index.html does not exist. List directory content...");
@@ -66,7 +52,7 @@ std::string build(const HttpRequest &request, const std::string &documents_root)
         // File existiert: Content zurückliefern
         Logger::info(path.string() + " is a file and exists");
         response.add_header("Content-Type", "text/plain");
-        response.set_content(get_file_content(path));
+        response.set_content(helper::read_file(path));
         response.set_status(HttpResponse::Status::OK);
     } else {
         // File existiert nicht: Directory Listing
@@ -78,5 +64,4 @@ std::string build(const HttpRequest &request, const std::string &documents_root)
     }
 
     return response.build();
-}
 }

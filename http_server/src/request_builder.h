@@ -4,8 +4,10 @@
 #include <memory>
 #include <connection.hpp>
 
-namespace response_builder {
 
-std::string build(const HttpRequest &request, const std::string &document_root);
+class ResponseBuilder {
+public:
+    static std::string build(const HttpRequest &request, const std::string &document_root);
 
-}
+private:
+};
