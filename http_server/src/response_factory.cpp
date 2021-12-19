@@ -6,8 +6,10 @@
 #include "helper.hpp"
 #include <map>
 #include <fmt/format.h>
+#include <chrono>
 
 namespace fs = std::filesystem;
+using namespace std::chrono_literals;
 
 std::string ResponseFactory::create(const HttpRequest &request,
                                     const std::string &documents_root) {
@@ -92,10 +94,19 @@ std::string ResponseFactory::get_plain_text_file_listing(const fs::path &dir_pat
                                       helper::file_size_to_str(file.file_size());
         const std::string &args = file.path().filename().string() + (is_directory(file) ? "/" : "");
 
+
+        std::error_code error;
+        fs::file_time_type file_time_point = file.last_write_time(error);
+
+        std::time_t tt = helper::to_time_t(file_time_point);
+        std::string formattedFileTime = helper::time_t_to_string(tt, "%F %T");
+
+        const std::string &last_modified = error ? error.message() : formattedFileTime;
+
         file_listing << fmt::format(table_format,
                                     args,
                                     filesize,
-                                    "(TODO last write time)"
+                                    last_modified
         );
         file_listing << '\n';
     }
