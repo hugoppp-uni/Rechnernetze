@@ -19,5 +19,5 @@ private:
     static void
     build_from_plain_text(HttpResponse &response, HttpResponse::Status status, std::string &text);
 
-    static std::string get_file_listing(const std::filesystem::path &dir_path);
+    static std::string get_plain_text_file_listing(const std::filesystem::path &dir_path);
 };

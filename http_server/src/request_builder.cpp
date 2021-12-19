@@ -1,10 +1,13 @@
 #include "request_builder.h"
 #include <HttpRequest.h>
 #include <HttpResponse.hpp>
-#include <fstream>
 #include <filesystem>
 #include "logger.hpp"
 #include "helper.hpp"
+
+#define FMT_HEADER_ONLY
+
+#include <fmt/format.h>
 
 namespace fs = std::filesystem;
 
@@ -62,21 +65,35 @@ void ResponseBuilder::build_from_directory(HttpResponse &response,
         Logger::warn("index.html does not exist. List directory content...");
 
         const std::string file_listing = "Directory content of " + request.get_uri() + '\n'
-                                         + get_file_listing(dir_path);
+                                         + get_plain_text_file_listing(dir_path);
 
         response.add_header("Content-Type", "text/plain");
         response.set_content(file_listing);
     }
 }
 
-std::string ResponseBuilder::get_file_listing(const fs::path &dir_path) {
-    std::stringstream file_listing;
+std::string ResponseBuilder::get_plain_text_file_listing(const fs::path &dir_path) {
+
+    constexpr char *table_format = "| {:<50} | {:<30} | {:<30}|";
+    constexpr int table_format_lengt = 1 + 50 + 3 + 30 + 3 + 30;
+    std::string header{fmt::format(table_format, "filename", "size", "last modified") + '\n'};
+    std::string separator{"|" + std::string(table_format_lengt, '-') + "|\n"};
+
+    std::stringstream file_listing{};
+    file_listing << separator
+                 << header
+                 << separator;
+
     for (const auto &file: std::filesystem::directory_iterator(dir_path)) {
-        file_listing << file.path().filename().string() << " | "
-                     << helper::file_size_to_str(file.file_size()) << " | "
-                     << "(TODO last write time)" << " | "
-                     << "\n";
+        file_listing << fmt::format(table_format,
+                                    file.path().filename().string(),
+                                    helper::file_size_to_str(file.file_size()),
+                                    "(TODO last write time)"
+        );
+        file_listing << '\n';
     }
+    file_listing << separator;
+
     return file_listing.str();
 }
 

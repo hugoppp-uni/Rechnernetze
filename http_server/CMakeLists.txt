@@ -12,6 +12,7 @@ add_executable(http_server
         src/helper.cpp src/helper.hpp)
 
 target_include_directories(http_server PRIVATE lib/cxxopts/include)
+target_include_directories(http_server PRIVATE lib/fmt-8.0.1/include)
 target_include_directories(http_server PRIVATE ${CMAKE_SOURCE_DIR}/connection_base/src)
 
 find_package(Threads REQUIRED)
