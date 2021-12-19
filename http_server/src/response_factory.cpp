@@ -28,7 +28,8 @@ std::string ResponseFactory::create(const HttpRequest &request,
     // 2) if fpath is a directory: check if index.html is present inside this directory. If not, set Payload to directory listing as table. If yes, set Payload to index.html content.
     // Tipp: opendir(), closedir(), readdir() und stat()
 
-    fs::path path = documents_root + request.get_uri();
+    const std::string &uri = request.get_uri();
+    fs::path path = documents_root + uri;
     if (is_directory(path)) {
         Logger::info(path.string() + " is a directory and exists");
         build_from_directory(response, request, path);
@@ -36,8 +37,8 @@ std::string ResponseFactory::create(const HttpRequest &request,
         Logger::info(path.string() + " is a file and exists");
         build_from_file(response, path);
     } else {
-        Logger::error("Requested file " + path.string() + " does not exist.");
-        std::string reason{"File '" + path.string() + "' does not exist. Please provide a correct file path"};
+        Logger::error("Requested file " + uri + " does not exist.");
+        std::string reason{"File '" + uri + "' does not exist. Please provide a correct file path"};
         build_from_plain_text(response, HttpResponse::BAD_REQUEST, reason);
     }
 
