@@ -7,9 +7,9 @@
 #include <map>
 
 
-class ResponseBuilder {
+class ResponseFactory {
 public:
-    static std::string build(const HttpRequest &request, const std::string &document_root);
+    static std::string create(const HttpRequest &request, const std::string &documents_root);
 
 private:
     static std::map<std::string, std::string> content_type_map;

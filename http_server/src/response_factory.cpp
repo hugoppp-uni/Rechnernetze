@@ -1,4 +1,4 @@
-#include "request_builder.h"
+#include "response_factory.h"
 #include <HttpRequest.h>
 #include <HttpResponse.hpp>
 #include <filesystem>
@@ -12,8 +12,8 @@
 
 namespace fs = std::filesystem;
 
-std::string ResponseBuilder::build(const HttpRequest &request,
-                                   const std::string &documents_root) {
+std::string ResponseFactory::create(const HttpRequest &request,
+                                    const std::string &documents_root) {
 
     HttpResponse response;
     // Check if method is supported (currently only GET)
@@ -44,13 +44,13 @@ std::string ResponseBuilder::build(const HttpRequest &request,
     return response.build();
 }
 
-void ResponseBuilder::build_from_plain_text(HttpResponse &response, HttpResponse::Status status, std::string &text) {
+void ResponseFactory::build_from_plain_text(HttpResponse &response, HttpResponse::Status status, std::string &text) {
     response.add_header("Content-Type", "text/plain");
     response.set_content(text);
     response.set_status(status);
 }
 
-void ResponseBuilder::build_from_directory(HttpResponse &response,
+void ResponseFactory::build_from_directory(HttpResponse &response,
                                            const HttpRequest &request,
                                            const fs::path &dir_path) {
 
@@ -73,7 +73,7 @@ void ResponseBuilder::build_from_directory(HttpResponse &response,
     }
 }
 
-std::string ResponseBuilder::get_plain_text_file_listing(const fs::path &dir_path) {
+std::string ResponseFactory::get_plain_text_file_listing(const fs::path &dir_path) {
 
     constexpr char *table_format = "| {:<50} | {:<30} | {:<30}|";
     constexpr int table_format_lengt = 1 + 50 + 3 + 30 + 3 + 30;
@@ -103,7 +103,7 @@ std::string ResponseBuilder::get_plain_text_file_listing(const fs::path &dir_pat
     return file_listing.str();
 }
 
-void ResponseBuilder::build_from_file(HttpResponse &response,
+void ResponseFactory::build_from_file(HttpResponse &response,
                                       const fs::path &file_path) {
 
     std::string content_type = get_content_type(file_path);
@@ -112,7 +112,7 @@ void ResponseBuilder::build_from_file(HttpResponse &response,
     response.set_status(HttpResponse::OK);
 }
 
-std::string ResponseBuilder::get_content_type(const fs::path &file_path) {
+std::string ResponseFactory::get_content_type(const fs::path &file_path) {
 
     std::string content_type;
     if (!file_path.has_extension())
@@ -128,7 +128,7 @@ std::string ResponseBuilder::get_content_type(const fs::path &file_path) {
 
 
 using ContentTypeMap = std::map<std::string, std::string>;
-ContentTypeMap ResponseBuilder::content_type_map = ContentTypeMap{
+ContentTypeMap ResponseFactory::content_type_map = ContentTypeMap{
     {".txt",  "text/plain"},
     {".html", "text/html"},
     {".xml",  "text/xml"},
