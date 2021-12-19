@@ -5,9 +5,9 @@
 
 #include "options.hpp"
 #include "connection_listener.hpp"
-#include "request_handler.h"
+#include "request_builder.h"
 
-void handle_incoming_requests(std::unique_ptr<Connection> cnn);
+void handle_incoming_requests(std::unique_ptr<Connection> cnn, const Options&);
 
 void remove_handler_thread(std::thread::id id);
 
@@ -33,15 +33,13 @@ int main(int argc, char **argv) {
     if (!opt.port.has_value())
         opt.port = 8080;
 
-    DOCUMENT_ROOT_FOLDER = opt.document_root_folder;
-
     ConnectionListener listener = ConnectionListener{opt.port.value()};
-    std::thread listener_thread{[&listener] {
+    std::thread listener_thread{[&listener, &opt] {
 
         bool running = true;
         while (running) {
             try {
-                handle_incoming_requests(listener.accept_next_connection());
+                handle_incoming_requests(listener.accept_next_connection(), opt);
             } catch (ListenerClosedException &) {
                 running = false;
             }
@@ -78,20 +76,22 @@ int main(int argc, char **argv) {
     return 0;
 }
 
-void handle_incoming_requests(std::unique_ptr<Connection> cnn) {
+void handle_incoming_requests(std::unique_ptr<Connection> cnn, const Options &opt) {
     if (cnn) {
         std::lock_guard<std::mutex> lock{ handler_threads_mutex };
-        running_handler_threads.emplace_back(std::thread{[cnn = std::move(cnn)] {
+        running_handler_threads.emplace_back(std::thread{[cnn = std::move(cnn), &opt] {
 
             Logger::info("Client connected from '" + cnn->get_address()->str() + "', receiving data");
             std::string received = cnn->receive_string();
-            Logger::data(received);
 
             // Build request out of received data and handle it
             HttpRequest request{received};
-            handle_request(cnn, &request);
 
-            std::this_thread::sleep_for(std::chrono::seconds(4));
+            std::string response = response_builder::build(request, opt.document_root_folder);
+            cnn->send(response);
+
+            if(opt.sleep_after_send > 0)
+                std::this_thread::sleep_for(std::chrono::seconds(opt.sleep_after_send));
 
             std::lock_guard<std::mutex> lock{ handler_threads_mutex };
             if (remove_handler_threads_on_completion) {

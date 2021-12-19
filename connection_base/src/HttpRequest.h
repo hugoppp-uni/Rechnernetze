@@ -12,10 +12,10 @@ public:
     explicit HttpRequest(const std::string &data);
     enum Method { GET, POST, PUT };
 
-    Method get_method();
-    std::string get_version();
-    std::string get_uri();
-    std::string get_headers();
+    Method get_method() const;
+    std::string get_version() const;
+    std::string get_uri() const;
+    std::string get_headers() const;
 
 private:
     Method method = GET;

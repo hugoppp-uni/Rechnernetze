@@ -10,6 +10,7 @@ public:
 
     inline static std::string program_version = "0.1";
     inline const static std::string program_name = "http_server";
+    int sleep_after_send;
 
     Options(int argc, char **argv) {
         cxxopts::Options options(program_name, "A simple HTTP/1.1 web server.");
@@ -19,6 +20,7 @@ public:
 
             ("p,port", "Specify listening port", cxxopts::value(port))
             ("l,logfile", "Logfile to write to instead of stdout", cxxopts::value(logfile))
+            ("S,sleep", "Sleep x seconds after sending the data", cxxopts::value(sleep_after_send))
 
             //info
             ("h,help", "Give this help list")
@@ -82,4 +84,5 @@ private:
             exit(0);
         }
     }
+
 };

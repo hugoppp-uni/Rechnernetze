@@ -1,4 +1,4 @@
-#include "request_handler.h"
+#include "request_builder.h"
 #include <HttpRequest.h>
 #include <HttpResponse.hpp>
 #include <connection.hpp>
@@ -8,6 +8,8 @@
 
 namespace fs = std::filesystem;
 std::string DOCUMENT_ROOT_FOLDER;
+
+namespace response_builder {
 
 std::vector<char> get_file_content(fs::path& fpath) {
     std::istreambuf_iterator<char> test;
@@ -20,17 +22,16 @@ std::vector<char> get_file_content(fs::path& fpath) {
     return contents;
 }
 
-int handle_request(const std::unique_ptr<Connection>& cnn, HttpRequest *request) {
+std::string build(const HttpRequest &request, const std::string &documents_root) {
 
     HttpResponse response;
 
     // Check if method is supported (currently only GET)
-    if (request->get_method() != HttpRequest::GET) {
+    if (request.get_method() != HttpRequest::GET) {
         response.set_status(HttpResponse::Status::METHOD_NOT_ALLOWED);
         response.add_header("Content-Type", "text/plain");
         response.set_content("Sorry, this method is not allowed. Currently only GET is supported.");
-        cnn->send(response.build());
-        return EXIT_FAILURE;
+        return response.build();
     }
 
     // TODO: Set content of Response according to requested file/directory
@@ -38,7 +39,7 @@ int handle_request(const std::unique_ptr<Connection>& cnn, HttpRequest *request)
     // 2) if fpath is a directory: check if index.html is present inside this directory. If not, set Payload to directory listing as table. If yes, set Payload to index.html content.
     // Tipp: opendir(), closedir(), readdir() und stat()
 
-    fs::path path = DOCUMENT_ROOT_FOLDER + request->get_uri();
+    fs::path path = documents_root + request.get_uri();
     if ( is_directory(path) ) {
 //        std::cout << path.string() << " is a directory and exists" << std::endl;
         Logger::info(path.string() + " is a directory and exists");
@@ -52,7 +53,7 @@ int handle_request(const std::unique_ptr<Connection>& cnn, HttpRequest *request)
             // index.html nicht vorhanden: Sende Listing der Dateien im Ordner
             Logger::warn("index.html does not exist. List directory content...");
             std::string file_listing;
-            file_listing.append("Directory content of " + request->get_uri() + ":\n");
+            file_listing.append("Directory content of " + request.get_uri() + ":\n");
             for (const auto & file : std::filesystem::directory_iterator(path)) {
                 std::cout << file.path() << " | " << file.file_size() << std::endl;
                 file_listing.append(file.path().string() + "\n");
@@ -76,8 +77,6 @@ int handle_request(const std::unique_ptr<Connection>& cnn, HttpRequest *request)
         response.set_status(HttpResponse::Status::BAD_REQUEST);
     }
 
-    // Send response
-    cnn->send(response.build());
-
-    return EXIT_SUCCESS;
+    return response.build();
+}
 }
