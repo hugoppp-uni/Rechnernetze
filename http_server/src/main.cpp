@@ -6,8 +6,9 @@
 #include "options.hpp"
 #include "connection_listener.hpp"
 #include "response_factory.h"
+#include <fmt/format.h>
 
-void handle_incoming_requests(std::unique_ptr<Connection> cnn, const Options&);
+void handle_incoming_requests(std::unique_ptr<Connection> cnn, const Options &);
 
 void remove_handler_thread(std::thread::id id);
 
@@ -62,15 +63,14 @@ int main(int argc, char **argv) {
     }
 
     if (!running_handler_threads.empty())
-        Logger::warn(
-            "Waiting for " + std::to_string(running_handler_threads.size()) + " active requests to complete...");
+        Logger::warn(fmt::format("Waiting for {} active requests to complete...",running_handler_threads.size()));
 
     int i{1};
     auto max_remaining_threads{std::to_string(running_handler_threads.size())};
     for (auto &handler_thread: running_handler_threads) {
         if (handler_thread.joinable())
             handler_thread.join();
-        Logger::warn("... " + std::to_string(i++) + "/" + max_remaining_threads + " completed");
+        Logger::warn(fmt::format("... {}/{} completed", i, max_remaining_threads));
     }
 
     return 0;
@@ -78,10 +78,10 @@ int main(int argc, char **argv) {
 
 void handle_incoming_requests(std::unique_ptr<Connection> cnn, const Options &opt) {
     if (cnn) {
-        std::lock_guard<std::mutex> lock{ handler_threads_mutex };
+        std::lock_guard<std::mutex> lock{handler_threads_mutex};
         running_handler_threads.emplace_back(std::thread{[cnn = std::move(cnn), &opt] {
 
-            Logger::info("Client connected from '" + cnn->get_address()->str() + "', receiving data");
+            Logger::info(fmt::format("Client connected from '{}', receiving data", cnn->get_address()->str()));
             std::string received = cnn->receive_string();
 
             // Build request out of received data and handle it
@@ -90,10 +90,10 @@ void handle_incoming_requests(std::unique_ptr<Connection> cnn, const Options &op
             std::string response = ResponseFactory::create(request, opt.document_root_folder);
             cnn->send(response);
 
-            if(opt.sleep_after_send > 0)
+            if (opt.sleep_after_send > 0)
                 std::this_thread::sleep_for(std::chrono::seconds(opt.sleep_after_send));
 
-            std::lock_guard<std::mutex> lock{ handler_threads_mutex };
+            std::lock_guard<std::mutex> lock{handler_threads_mutex};
             if (remove_handler_threads_on_completion) {
                 remove_handler_thread(std::this_thread::get_id());
             }

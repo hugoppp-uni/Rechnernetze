@@ -34,8 +34,10 @@ std::string ResponseFactory::create(const HttpRequest &request,
         Logger::info(path.string() + " is a file and exists");
         build_from_file(response, path);
     } else {
-        Logger::error("Requested file " + uri + " does not exist.");
-        std::string reason{"File '" + uri + "' does not exist. Please provide a correct file path"};
+        const std::string &err_str = fmt::format("Requested file {} does not exist", uri);
+        Logger::warn(err_str);
+
+        std::string reason{err_str + " Please provide a correct file path"};
         build_from_plain_text(response, HttpResponse::BAD_REQUEST, reason);
     }
 
@@ -63,8 +65,9 @@ void ResponseFactory::build_from_directory(HttpResponse &response,
         // index.html nicht vorhanden: Sende Listing der Dateien im Ordner
         Logger::warn("index.html does not exist. List directory content...");
 
-        const std::string file_listing = "Directory content of " + request.get_uri() + '\n'
-                                         + get_plain_text_file_listing(dir_path);
+        const std::string file_listing = fmt::format("Directory content of '{}': \n{}",
+                                                     request.get_uri(),
+                                                     get_plain_text_file_listing(dir_path));
 
         response.add_header("Content-Type", "text/plain");
         response.set_content(file_listing);
@@ -73,8 +76,8 @@ void ResponseFactory::build_from_directory(HttpResponse &response,
 
 std::string ResponseFactory::get_plain_text_file_listing(const fs::path &dir_path) {
 
-    constexpr char *table_format = "| {:<50} | {:<30} | {:<30}|";
-    constexpr int table_format_lengt = 1 + 50 + 3 + 30 + 3 + 30;
+    constexpr char *table_format = "| {:<50} | {:>10} | {:<20}|";
+    constexpr int table_format_lengt = 1 + 50 + 3 + 10 + 3 + 20;
     std::string header{fmt::format(table_format, "filename", "size", "last modified") + '\n'};
     std::string separator{"|" + std::string(table_format_lengt, '-') + "|\n"};
 

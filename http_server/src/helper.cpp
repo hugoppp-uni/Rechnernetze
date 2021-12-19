@@ -2,6 +2,7 @@
 #include <vector>
 #include <fstream>
 #include "helper.hpp"
+#include "fmt/format.h"
 
 namespace fs = std::filesystem;
 
@@ -24,10 +25,5 @@ std::string helper::file_size_to_str(uint64_t size) {
         size_double /= 1024;
     }
 
-
-    std::stringstream ss;
-    ss.setf(std::ios::fixed);
-    ss.precision(1);
-    ss << size_double << units[order];
-    return ss.str();
+    return fmt::format("{:.1f}{}", size_double,units[order]);
 }
