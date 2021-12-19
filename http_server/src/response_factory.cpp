@@ -5,9 +5,6 @@
 #include "logger.hpp"
 #include "helper.hpp"
 #include <map>
-
-#define FMT_HEADER_ONLY
-
 #include <fmt/format.h>
 
 namespace fs = std::filesystem;
