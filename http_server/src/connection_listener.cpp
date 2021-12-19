@@ -39,9 +39,8 @@ ConnectionListener::~ConnectionListener() {
 }
 
 std::unique_ptr<Connection> ConnectionListener::accept_next_connection() const {
-
-    auto *peer_sockaddr = new struct sockaddr();
-    socklen_t peer_socklen{};
+    auto *peer_sockaddr = (sockaddr*)(new struct sockaddr_in());
+    socklen_t peer_socklen = sizeof(*peer_sockaddr);
     int peer_file_descriptor = ::accept(file_descriptor, peer_sockaddr, &peer_socklen);
 
     if (0 > peer_file_descriptor) {
