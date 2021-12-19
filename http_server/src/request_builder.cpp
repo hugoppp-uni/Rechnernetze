@@ -8,15 +8,14 @@
 
 namespace fs = std::filesystem;
 
-std::string ResponseBuilder::build(const HttpRequest &request, const std::string &documents_root) {
+std::string ResponseBuilder::build(const HttpRequest &request,
+                                   const std::string &documents_root) {
 
     HttpResponse response;
-
     // Check if method is supported (currently only GET)
     if (request.get_method() != HttpRequest::GET) {
-        response.set_status(HttpResponse::Status::METHOD_NOT_ALLOWED);
-        response.add_header("Content-Type", "text/plain");
-        response.set_content("Sorry, this method is not allowed. Currently only GET is supported.");
+        std::string reason{"Sorry, this method is not allowed. Currently only GET is supported."};
+        build_from_plain_text(response, HttpResponse::METHOD_NOT_ALLOWED, reason);
         return response.build();
     }
 
@@ -26,42 +25,65 @@ std::string ResponseBuilder::build(const HttpRequest &request, const std::string
     // Tipp: opendir(), closedir(), readdir() und stat()
 
     fs::path path = documents_root + request.get_uri();
-    if ( is_directory(path) ) {
-//        std::cout << path.string() << " is a directory and exists" << std::endl;
+    if (is_directory(path)) {
         Logger::info(path.string() + " is a directory and exists");
-        fs::path fpath = path.string() + "/index.html";
-        if(exists(fpath)) {
-            // index.html vorhanden: Sende Datei
-            Logger::info("index.html exists");
-            response.add_header("Content-Type", "text/html");
-            response.set_content(helper::read_file(fpath));
-        } else {
-            // index.html nicht vorhanden: Sende Listing der Dateien im Ordner
-            Logger::warn("index.html does not exist. List directory content...");
-            std::string file_listing;
-            file_listing.append("Directory content of " + request.get_uri() + ":\n");
-            for (const auto & file : std::filesystem::directory_iterator(path)) {
-                std::cout << file.path() << " | " << file.file_size() << std::endl;
-                file_listing.append(file.path().string() + "\n");
-            }
-            response.add_header("Content-Type", "text/plain");
-            response.set_content(file_listing);
-        }
-        response.set_status(HttpResponse::Status::OK);
-    } else if(exists(path)){
-        // File existiert: Content zurückliefern
+        build_from_directory(response, request, path);
+    } else if (exists(path)) {
         Logger::info(path.string() + " is a file and exists");
-        response.add_header("Content-Type", "text/plain");
-        response.set_content(helper::read_file(path));
-        response.set_status(HttpResponse::Status::OK);
+        build_from_file(response, path);
     } else {
-        // File existiert nicht: Directory Listing
-        std::cout << path.string() << " does not exist." << std::endl;
         Logger::error("Requested file " + path.string() + " does not exist.");
-        response.add_header("Content-Type", "text/plain");
-        response.set_content("File " + path.string() + " does not exist. Please provide a correct file path");
-        response.set_status(HttpResponse::Status::BAD_REQUEST);
+        std::string reason{"File '" + path.string() + "' does not exist. Please provide a correct file path"};
+        build_from_plain_text(response, HttpResponse::BAD_REQUEST, reason);
     }
 
     return response.build();
+}
+
+void ResponseBuilder::build_from_plain_text(HttpResponse &response, HttpResponse::Status status, std::string &text) {
+    response.add_header("Content-Type", "text/plain");
+    response.set_content(text);
+    response.set_status(status);
+}
+
+void ResponseBuilder::build_from_directory(HttpResponse &response,
+                                           const HttpRequest &request,
+                                           const fs::path &dir_path) {
+
+    response.set_status(HttpResponse::OK);
+    fs::path index_html_path = dir_path / "index.html";
+
+    if (exists(index_html_path)) {
+        // index.html vorhanden: Sende Datei
+        Logger::info("index.html exists");
+        build_from_file(response, index_html_path);
+    } else {
+        // index.html nicht vorhanden: Sende Listing der Dateien im Ordner
+        Logger::warn("index.html does not exist. List directory content...");
+
+        const std::string file_listing = "Directory content of " + request.get_uri() + '\n'
+                                         + get_file_listing(dir_path);
+
+        response.add_header("Content-Type", "text/plain");
+        response.set_content(file_listing);
+    }
+}
+
+std::string ResponseBuilder::get_file_listing(const fs::path &dir_path) {
+    std::stringstream file_listing;
+    for (const auto &file: std::filesystem::directory_iterator(dir_path)) {
+        file_listing << file.path().filename().string() << " | "
+                     << helper::file_size_to_str(file.file_size()) << " | "
+                     << "(TODO last write time)" << " | "
+                     << "\n";
+    }
+    return file_listing.str();
+}
+
+void ResponseBuilder::build_from_file(HttpResponse &response,
+                                      const fs::path &path) {
+
+    response.add_header("Content-Type", "text/plain");
+    response.set_content(helper::read_file(path));
+    response.set_status(HttpResponse::OK);
 }
