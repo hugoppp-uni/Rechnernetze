@@ -59,8 +59,14 @@ std::string Address::addr_to_string(const ::sockaddr *sockaddr) {
         return "address family not specified";
 
     char buffer[INET6_ADDRSTRLEN] = {0};
-    if (nullptr != inet_ntop(sockaddr->sa_family, sockaddr, buffer, sizeof(buffer)))
+
+
+    //NOTE might not work for IPv6
+    if (nullptr != inet_ntop(sockaddr->sa_family,
+                             (void *) &(((sockaddr_in *) sockaddr)->sin_addr),
+                             buffer, sizeof(buffer))) {
         return buffer;
+    }
     return strerror(errno);
 }
 
