@@ -90,8 +90,10 @@ void handle_incoming_requests(std::unique_ptr<Connection> cnn, const Options &op
             std::string response = ResponseFactory::create(request, opt.document_root_folder);
             cnn->send(response);
 
-            if (opt.sleep_after_send > 0)
+            if (opt.sleep_after_send > 0) {
+                Logger::warn(fmt::format("sleeping for {} seconds", opt.sleep_after_send));
                 std::this_thread::sleep_for(std::chrono::seconds(opt.sleep_after_send));
+            }
 
             std::lock_guard<std::mutex> lock{handler_threads_mutex};
             if (remove_handler_threads_on_completion) {

@@ -8,9 +8,9 @@ public:
     std::optional<std::filesystem::path> logfile;
     std::filesystem::path document_root_folder;
 
-    inline static std::string program_version = "0.1";
+    inline const static std::string program_version = "0.1";
     inline const static std::string program_name = "http_server";
-    int sleep_after_send;
+    int sleep_after_send{0};
 
     Options(int argc, char **argv) {
         cxxopts::Options options(program_name, "A simple HTTP/1.1 web server.");
