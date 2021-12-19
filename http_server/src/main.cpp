@@ -81,14 +81,19 @@ void handle_incoming_requests(std::unique_ptr<Connection> cnn, const Options &op
         std::lock_guard<std::mutex> lock{handler_threads_mutex};
         running_handler_threads.emplace_back(std::thread{[cnn = std::move(cnn), &opt] {
 
-            Logger::info(fmt::format("Client connected from '{}', receiving data", cnn->get_address()->str()));
+            const std::string &peer_address = cnn->get_address()->str();
+            Logger::info(fmt::format("Client connected from '{}', receiving data", peer_address));
             std::string received = cnn->receive_string();
 
             // Build request out of received data and handle it
             HttpRequest request{received};
+            Logger::data(fmt::format("[{}] requested {}", peer_address, request.get_uri()));
 
-            std::string response = ResponseFactory::create(request, opt.document_root_folder);
-            cnn->send(response);
+            HttpResponse response = ResponseFactory::create(request, opt.document_root_folder);
+
+            //todo improve this
+            Logger::data(fmt::format("[{}] responding '{}'", peer_address, response.get_metadata()));
+            cnn->send(response.build());
 
             if (opt.sleep_after_send > 0) {
                 Logger::warn(fmt::format("sleeping for {} seconds", opt.sleep_after_send));

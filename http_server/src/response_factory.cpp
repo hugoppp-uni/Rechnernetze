@@ -11,7 +11,7 @@
 namespace fs = std::filesystem;
 using namespace std::chrono_literals;
 
-std::string ResponseFactory::create(const HttpRequest &request,
+HttpResponse ResponseFactory::create(const HttpRequest &request,
                                     const std::string &documents_root) {
 
     HttpResponse response;
@@ -19,7 +19,7 @@ std::string ResponseFactory::create(const HttpRequest &request,
     if (request.get_method() != HttpRequest::GET) {
         std::string reason{"Sorry, this method is not allowed. Currently only GET is supported."};
         build_from_plain_text(response, HttpResponse::METHOD_NOT_ALLOWED, reason);
-        return response.build();
+        return response;
     }
 
     // TODO: Set content of Response according to requested file/directory
@@ -30,20 +30,15 @@ std::string ResponseFactory::create(const HttpRequest &request,
     const std::string &uri = request.get_uri();
     fs::path path = documents_root + uri;
     if (is_directory(path)) {
-        Logger::info(path.string() + " is a directory and exists");
         build_from_directory(response, request, path);
     } else if (exists(path)) {
-        Logger::info(path.string() + " is a file and exists");
         build_from_file(response, path);
     } else {
-        const std::string &err_str = fmt::format("Requested file {} does not exist", uri);
-        Logger::warn(err_str);
-
-        std::string reason{err_str + " Please provide a correct file path"};
+        std::string reason{fmt::format("Requested file {} does not existPlease provide a correct file path ", uri)};
         build_from_plain_text(response, HttpResponse::BAD_REQUEST, reason);
     }
 
-    return response.build();
+    return response;
 }
 
 void ResponseFactory::build_from_plain_text(HttpResponse &response, HttpResponse::Status status, std::string &text) {
@@ -61,11 +56,9 @@ void ResponseFactory::build_from_directory(HttpResponse &response,
 
     if (exists(index_html_path)) {
         // index.html vorhanden: Sende Datei
-        Logger::info("index.html exists");
         build_from_file(response, index_html_path);
     } else {
         // index.html nicht vorhanden: Sende Listing der Dateien im Ordner
-        Logger::warn("index.html does not exist. List directory content...");
 
         const std::string file_listing = fmt::format("Directory content of '{}': \n{}",
                                                      request.get_uri(),

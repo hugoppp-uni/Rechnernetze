@@ -10,7 +10,6 @@ HttpRequest::HttpRequest(std::string const& data) {
     std::istringstream iss(data);
     std::string status_line;
     std::getline(iss, status_line);
-    Logger::data(status_line);
 
     std::regex regex("(GET) (/.*)* (HTTP/1.1)\r");
     std::smatch matches;

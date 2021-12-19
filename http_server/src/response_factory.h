@@ -9,7 +9,7 @@
 
 class ResponseFactory {
 public:
-    static std::string create(const HttpRequest &request, const std::string &documents_root);
+    static HttpResponse create(const HttpRequest &request, const std::string &documents_root);
 
 private:
     static std::map<std::string, std::string> content_type_map;
