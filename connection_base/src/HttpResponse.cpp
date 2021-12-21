@@ -77,23 +77,22 @@ void HttpResponse::add_header(const std::string &key, const std::string &value) 
 std::string HttpResponse::get_status_text(HttpResponse::Status &status) {
     switch (status) {
         case OK:                        return "OK";
-        case INVALID_CODE:              return "INVALID_CODE";
-        case ACCEPTED:                  return "TODO";
-        case PARTIAL_CONTENT:           return "TODO";
-        case MULTIPLE_CHOICES:          return "TODO";
-        case MOVED_PERMANENTLY:         return "TODO";
-        case BAD_REQUEST:               return "TODO";
-        case UNAUTHORIZED:              return "TODO";
-        case FORBIDDEN:                 return "TODO";
-        case NOT_FOUND:                 return "TODO";
-        case METHOD_NOT_ALLOWED:        return "METHOD_NOT_ALLOWED";
-        case NOT_ACCEPTABLE:            return "TODO";
-        case REQUEST_TIMEOUT:           return "TODO";
-        case UNSUPPORTED_MEDIA_TYPE:    return "TODO";
-        case INTERNAL_SERVER_ERROR:     return "TODO";
-        case NOT_IMPLEMENTED:           return "TODO";
-        case SERVICE_UNAVAILABLE:       return "TODO";
-        case VERSION_NOT_SUPPORTED:     return "TODO";
+        case ACCEPTED:                  return "Accepted";
+        case PARTIAL_CONTENT:           return "Partial Content";
+        case MULTIPLE_CHOICES:          return "Multiple Choices";
+        case MOVED_PERMANENTLY:         return "Moved Permanently";
+        case BAD_REQUEST:               return "Bad Request";
+        case UNAUTHORIZED:              return "Unauthorized";
+        case FORBIDDEN:                 return "Forbidden";
+        case NOT_FOUND:                 return "Not Found";
+        case METHOD_NOT_ALLOWED:        return "Method Not Allowed";
+        case NOT_ACCEPTABLE:            return "Not Acceptable";
+        case REQUEST_TIMEOUT:           return "Request Timeout";
+        case UNSUPPORTED_MEDIA_TYPE:    return "Unsupported Media Type";
+        case INTERNAL_SERVER_ERROR:     return "Internal Server Error";
+        case NOT_IMPLEMENTED:           return "Not Implemented";
+        case SERVICE_UNAVAILABLE:       return "Service Unavailable";
+        case VERSION_NOT_SUPPORTED:     return "HTTP Version Not Suported";
     }
     return "UNKNOWN STATUS CODE";
 }
@@ -109,7 +108,7 @@ std::string HttpResponse::build() {
 }
 
 HttpResponse::HttpResponse() {
-    status = INVALID_CODE; // Initially unknown
+    status = ACCEPTED; // Initially unknown
 }
 
 void HttpResponse::set_status(HttpResponse::Status s) {

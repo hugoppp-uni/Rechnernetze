@@ -6,8 +6,15 @@
 
 class HttpResponse {
 public:
+    /*
+     * HTTP Status Codes according to RFC 2616
+     * 1xx: Informational
+     * 2xx: Successful
+     * 3xx: Redirection
+     * 4xx: Client Error
+     * 5xx: Server Error
+     */
     enum Status {
-        INVALID_CODE = 0,
         OK = 200,
         ACCEPTED = 202,
         PARTIAL_CONTENT = 206,

@@ -34,7 +34,7 @@ HttpResponse ResponseFactory::create(const HttpRequest &request,
     } else if (exists(path)) {
         build_from_file(response, path);
     } else {
-        std::string reason{fmt::format("Requested file {} does not existPlease provide a correct file path ", uri)};
+        std::string reason{fmt::format("Requested file {} does not exist. Please provide a correct file path ", uri)};
         build_from_plain_text(response, HttpResponse::BAD_REQUEST, reason);
     }
 
