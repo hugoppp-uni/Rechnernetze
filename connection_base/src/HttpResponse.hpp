@@ -15,7 +15,7 @@ public:
      * 4xx: Client Error
      * 5xx: Server Error
      */
-    enum Status {
+    enum class Status {
         NONE = 0,
         OK = 200,
         ACCEPTED = 202,
@@ -109,7 +109,7 @@ public:
     std::string build();
 
 private:
-    Status status = NONE;
+    Status status = Status::NONE;
     std::string header;
     std::vector<char> payload;
     std::stringstream result_stream;

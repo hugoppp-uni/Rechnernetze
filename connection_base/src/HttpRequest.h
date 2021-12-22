@@ -10,7 +10,7 @@
 class HttpRequest {
 public:
     explicit HttpRequest(const std::string &data);
-    enum Method { GET, POST, PUT };
+    enum class Method { GET, POST, PUT };
 
     Method get_method() const;
     std::string get_version() const;
@@ -18,7 +18,7 @@ public:
     std::string get_headers() const;
 
 private:
-    Method method = GET;
+    Method method = Method::GET;
     std::string uri;
     std::string http_version;
     std::string headers;

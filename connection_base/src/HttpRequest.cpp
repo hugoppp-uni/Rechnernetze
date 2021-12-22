@@ -19,7 +19,7 @@ HttpRequest::HttpRequest(std::string const& data) {
     }
 
     if (matches[1] == "GET")
-        method = GET;
+        method = Method::GET;
     uri = matches[2];
     http_version = matches[3];
 }

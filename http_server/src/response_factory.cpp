@@ -16,9 +16,9 @@ HttpResponse ResponseFactory::create(const HttpRequest &request,
 
     HttpResponse response;
     // Check if method is supported (currently only GET)
-    if (request.get_method() != HttpRequest::GET) {
+    if (request.get_method() != HttpRequest::Method::GET) {
         std::string reason{"Sorry, this method is not allowed. Currently only GET is supported."};
-        build_from_plain_text(response, HttpResponse::METHOD_NOT_ALLOWED, reason);
+        build_from_plain_text(response, HttpResponse::Status::METHOD_NOT_ALLOWED, reason);
         return response;
     }
 
@@ -35,7 +35,7 @@ HttpResponse ResponseFactory::create(const HttpRequest &request,
         build_from_file(response, path);
     } else {
         std::string reason{fmt::format("Requested file {} does not exist. Please provide a correct file path ", uri)};
-        build_from_plain_text(response, HttpResponse::BAD_REQUEST, reason);
+        build_from_plain_text(response, HttpResponse::Status::BAD_REQUEST, reason);
     }
 
     return response;
@@ -51,7 +51,7 @@ void ResponseFactory::build_from_directory(HttpResponse &response,
                                            const HttpRequest &request,
                                            const fs::path &dir_path) {
 
-    response.set_status(HttpResponse::OK);
+    response.set_status(HttpResponse::Status::OK);
     fs::path index_html_path = dir_path / "index.html";
 
     if (exists(index_html_path)) {
@@ -114,7 +114,7 @@ void ResponseFactory::build_from_file(HttpResponse &response,
     std::string content_type = get_content_type(file_path);
     response.add_header("Content-Type", content_type);
     response.set_content(helper::read_file(file_path));
-    response.set_status(HttpResponse::OK);
+    response.set_status(HttpResponse::Status::OK);
 }
 
 std::string ResponseFactory::get_content_type(const fs::path &file_path) {
