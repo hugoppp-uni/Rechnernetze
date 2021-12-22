@@ -30,7 +30,7 @@ HttpResponse ResponseFactory::create(const HttpRequest &request,
     if (is_directory(path)) {
         response = build_from_directory(path, request, log);
     } else if (exists(path)) {
-        response =  build_from_file(path);
+        response = build_from_file(path);
         log = fmt::format("file {}", path.string());
     } else {
         std::string reason{fmt::format("Requested file {} does not exist. Please provide a correct file path", uri)};
@@ -52,26 +52,23 @@ HttpResponse ResponseFactory::build_from_plain_text(HttpResponse::Status status,
 HttpResponse ResponseFactory::build_from_directory(const std::filesystem::path &dir_path,
                                                    const HttpRequest &request,
                                                    std::string &log) {
-    HttpResponse response;
-    response.set_status(HttpResponse::Status::OK);
     fs::path index_html_path = dir_path / "index.html";
 
     if (exists(index_html_path)) {
-        // index.html vorhanden: Sende Datei
-        build_from_file(index_html_path);
         log = fmt::format("file {}", index_html_path.string());
-    } else {
-        // index.html nicht vorhanden: Sende Listing der Dateien im Ordner
-
-        const std::string file_listing = fmt::format("Directory content of '{}': \n{}",
-                                                     request.get_uri(),
-                                                     get_plain_text_file_listing(dir_path));
-
-        response.add_header("Content-Type", "text/plain");
-        response.set_content(file_listing);
-        log = fmt::format("directory listing {}", dir_path.string());
+        return build_from_file(index_html_path);
     }
 
+    // index.html nicht vorhanden: Sende Listing der Dateien im Ordner
+    const std::string file_listing = fmt::format("Directory content of '{}': \n{}",
+                                                 request.get_uri(),
+                                                 get_plain_text_file_listing(dir_path));
+
+    HttpResponse response;
+    response.set_status(HttpResponse::Status::OK);
+    response.add_header("Content-Type", "text/plain");
+    response.set_content(file_listing);
+    log = fmt::format("directory listing {}", dir_path.string());
     return response;
 }
 

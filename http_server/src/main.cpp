@@ -89,11 +89,8 @@ void handle_incoming_requests(std::unique_ptr<Connection> cnn, const Options &op
             HttpRequest request{received};
             Logger::data(fmt::format("[{}] requested {}", peer_address, request.get_uri()));
 
-            std::optional<std::filesystem::path> send_file{std::nullopt};
             std::string log{};
             HttpResponse response = ResponseFactory::create(request, opt.document_root_folder, log);
-
-            //todo improve this
             const std::string &string = fmt::format("[{address}] responding with '{code} {text}' '{log}'",
                                                     fmt::arg("address", peer_address),
                                                     fmt::arg("code", response.get_status_code()),
