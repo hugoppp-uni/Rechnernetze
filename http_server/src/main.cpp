@@ -8,9 +8,9 @@
 #include "response_factory.h"
 #include <fmt/format.h>
 
-void handle_incoming_requests(std::unique_ptr<Connection> cnn, const Options &);
-
 void remove_handler_thread(std::thread::id id);
+
+void handle_incoming_request(std::unique_ptr<Connection> cnn, const Options &opt);
 
 std::list<std::thread> running_handler_threads{};
 std::mutex handler_threads_mutex{};
@@ -40,7 +40,15 @@ int main(int argc, char **argv) {
         bool running = true;
         while (running) {
             try {
-                handle_incoming_requests(listener.accept_next_connection(), opt);
+                std::unique_ptr<Connection> cnn = listener.accept_next_connection();
+                if (cnn) {
+                    std::lock_guard<std::mutex> lock{handler_threads_mutex};
+                    running_handler_threads.emplace_back(
+                        std::thread(handle_incoming_request, std::move(cnn), std::ref(opt))
+                    );
+                } else {
+                    Logger::error("Error while accepting client connection");
+                }
             } catch (ListenerClosedException &) {
                 running = false;
             }
@@ -76,43 +84,6 @@ int main(int argc, char **argv) {
     return 0;
 }
 
-void handle_incoming_requests(std::unique_ptr<Connection> cnn, const Options &opt) {
-    if (cnn) {
-        std::lock_guard<std::mutex> lock{handler_threads_mutex};
-        running_handler_threads.emplace_back(std::thread{[cnn = std::move(cnn), &opt] {
-
-            const std::string &peer_address = cnn->get_address()->str();
-            Logger::info(fmt::format("Client connected from '{}', receiving data", peer_address));
-            std::string received = cnn->receive_string();
-
-            // Build request out of received data and handle it
-            HttpRequest request{received};
-            Logger::data(fmt::format("[{}] requested {}", peer_address, request.get_uri()));
-
-            std::string log{};
-            HttpResponse response = ResponseFactory::create(request, opt.document_root_folder, log);
-            const std::string &string = fmt::format("[{address}] responding with '{code} {text}' '{log}'",
-                                                    fmt::arg("address", peer_address),
-                                                    fmt::arg("code", response.get_status_code()),
-                                                    fmt::arg("text", response.get_status_text()),
-                                                    fmt::arg("log", log));
-            Logger::data(string);
-            cnn->send(response.build());
-
-            if (opt.sleep_after_send > 0) {
-                Logger::warn(fmt::format("sleeping for {} seconds", opt.sleep_after_send));
-                std::this_thread::sleep_for(std::chrono::seconds(opt.sleep_after_send));
-            }
-
-            std::lock_guard<std::mutex> lock{handler_threads_mutex};
-            if (remove_handler_threads_on_completion) {
-                remove_handler_thread(std::this_thread::get_id());
-            }
-        }});
-    } else {
-        Logger::error("Error while accepting client connection");
-    }
-}
 
 void remove_handler_thread(std::thread::id id) {
     auto iter = std::find_if(running_handler_threads.begin(), running_handler_threads.end(),
@@ -120,5 +91,35 @@ void remove_handler_thread(std::thread::id id) {
     if (iter != running_handler_threads.end()) {
         iter->detach();
         running_handler_threads.erase(iter);
+    }
+}
+
+void handle_incoming_request(std::unique_ptr<Connection> cnn, const Options &opt) {
+    const std::string &peer_address = cnn->get_address()->str();
+    Logger::info(fmt::format("Client connected from '{}', receiving data", peer_address));
+    std::string received = cnn->receive_string();
+
+    // Build request out of received data and handle it
+    HttpRequest request{received};
+    Logger::data(fmt::format("[{}] requested {}", peer_address, request.get_uri()));
+
+    std::string log{};
+    HttpResponse response = ResponseFactory::create(request, opt.document_root_folder, log);
+    const std::string &string = fmt::format("[{address}] responding with '{code} {text}' '{log}'",
+                                            fmt::arg("address", peer_address),
+                                            fmt::arg("code", response.get_status_code()),
+                                            fmt::arg("text", response.get_status_text()),
+                                            fmt::arg("log", log));
+    Logger::data(string);
+    cnn->send(response.build());
+
+    if (opt.sleep_after_send > 0) {
+        Logger::warn(fmt::format("sleeping for {} seconds", opt.sleep_after_send));
+        std::this_thread::sleep_for(std::chrono::seconds(opt.sleep_after_send));
+    }
+
+    std::lock_guard<std::mutex> lock{handler_threads_mutex};
+    if (remove_handler_threads_on_completion) {
+        remove_handler_thread(std::this_thread::get_id());
     }
 }
