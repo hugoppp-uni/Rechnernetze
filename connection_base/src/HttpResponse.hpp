@@ -89,6 +89,9 @@ public:
      */
     void set_status(Status s);
 
+    std::string get_status_text();
+    Status get_status_code();
+
     /**
      * Sets the content that should be sent with the response
      * @param data byte-array with data

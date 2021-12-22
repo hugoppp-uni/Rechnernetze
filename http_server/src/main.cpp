@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
     }
 
     if (!running_handler_threads.empty())
-        Logger::warn(fmt::format("Waiting for {} active requests to complete...",running_handler_threads.size()));
+        Logger::warn(fmt::format("Waiting for {} active requests to complete...", running_handler_threads.size()));
 
     int i{1};
     auto max_remaining_threads{std::to_string(running_handler_threads.size())};
@@ -89,10 +89,17 @@ void handle_incoming_requests(std::unique_ptr<Connection> cnn, const Options &op
             HttpRequest request{received};
             Logger::data(fmt::format("[{}] requested {}", peer_address, request.get_uri()));
 
-            HttpResponse response = ResponseFactory::create(request, opt.document_root_folder);
+            std::optional<std::filesystem::path> send_file{std::nullopt};
+            std::string log{};
+            HttpResponse response = ResponseFactory::create(request, opt.document_root_folder, log);
 
             //todo improve this
-            Logger::data(fmt::format("[{}] responding '{}'", peer_address, response.get_metadata()));
+            const std::string &string = fmt::format("[{address}] responding with '{code} {text}' '{log}'",
+                                                    fmt::arg("address", peer_address),
+                                                    fmt::arg("code", response.get_status_code()),
+                                                    fmt::arg("text", response.get_status_text()),
+                                                    fmt::arg("log", log));
+            Logger::data(string);
             cnn->send(response.build());
 
             if (opt.sleep_after_send > 0) {

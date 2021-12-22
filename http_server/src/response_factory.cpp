@@ -12,51 +12,54 @@ namespace fs = std::filesystem;
 using namespace std::chrono_literals;
 
 HttpResponse ResponseFactory::create(const HttpRequest &request,
-                                    const std::string &documents_root) {
+                                     const std::string &documents_root,
+                                     std::string &log) {
 
-    HttpResponse response;
     // Check if method is supported (currently only GET)
     if (request.get_method() != HttpRequest::Method::GET) {
         std::string reason{"Sorry, this method is not allowed. Currently only GET is supported."};
-        build_from_plain_text(response, HttpResponse::Status::METHOD_NOT_ALLOWED, reason);
+        auto response = build_from_plain_text(HttpResponse::Status::METHOD_NOT_ALLOWED, reason);
+        log = reason;
         return response;
     }
 
-    // TODO: Set content of Response according to requested file/directory
-    // 1) if fpath has file-ending: Set Content-Type inside header according to file-type, set Payload of Response to file content. If file is not existent, set according Status-Code
-    // 2) if fpath is a directory: check if index.html is present inside this directory. If not, set Payload to directory listing as table. If yes, set Payload to index.html content.
-    // Tipp: opendir(), closedir(), readdir() und stat()
-
     const std::string &uri = request.get_uri();
     fs::path path = documents_root + uri;
+
+    HttpResponse response;
     if (is_directory(path)) {
-        build_from_directory(response, request, path);
+        response = build_from_directory(path, request, log);
     } else if (exists(path)) {
-        build_from_file(response, path);
+        response =  build_from_file(path);
+        log = fmt::format("file {}", path.string());
     } else {
-        std::string reason{fmt::format("Requested file {} does not exist. Please provide a correct file path ", uri)};
-        build_from_plain_text(response, HttpResponse::Status::BAD_REQUEST, reason);
+        std::string reason{fmt::format("Requested file {} does not exist. Please provide a correct file path", uri)};
+        response = build_from_plain_text(HttpResponse::Status::BAD_REQUEST, reason);
+        log = reason;
     }
 
     return response;
 }
 
-void ResponseFactory::build_from_plain_text(HttpResponse &response, HttpResponse::Status status, std::string &text) {
+HttpResponse ResponseFactory::build_from_plain_text(HttpResponse::Status status, std::string &text) {
+    HttpResponse response;
     response.add_header("Content-Type", "text/plain");
     response.set_content(text);
     response.set_status(status);
+    return response;
 }
 
-void ResponseFactory::build_from_directory(HttpResponse &response,
-                                           const HttpRequest &request,
-                                           const fs::path &dir_path) {
-
+HttpResponse ResponseFactory::build_from_directory(const std::filesystem::path &dir_path,
+                                                   const HttpRequest &request,
+                                                   std::string &log) {
+    HttpResponse response;
     response.set_status(HttpResponse::Status::OK);
     fs::path index_html_path = dir_path / "index.html";
 
     if (exists(index_html_path)) {
         // index.html vorhanden: Sende Datei
-        build_from_file(response, index_html_path);
+        build_from_file(index_html_path);
+        log = fmt::format("file {}", index_html_path.string());
     } else {
         // index.html nicht vorhanden: Sende Listing der Dateien im Ordner
 
@@ -66,7 +69,10 @@ void ResponseFactory::build_from_directory(HttpResponse &response,
 
         response.add_header("Content-Type", "text/plain");
         response.set_content(file_listing);
+        log = fmt::format("directory listing {}", dir_path.string());
     }
+
+    return response;
 }
 
 std::string ResponseFactory::get_plain_text_file_listing(const fs::path &dir_path) {
@@ -108,13 +114,13 @@ std::string ResponseFactory::get_plain_text_file_listing(const fs::path &dir_pat
     return file_listing.str();
 }
 
-void ResponseFactory::build_from_file(HttpResponse &response,
-                                      const fs::path &file_path) {
-
-    std::string content_type = get_content_type(file_path);
-    response.add_header("Content-Type", content_type);
+HttpResponse ResponseFactory::build_from_file(const fs::path &file_path) {
+    HttpResponse response;
+    response.add_header("Content-Type", get_content_type(file_path));
     response.set_content(helper::read_file(file_path));
     response.set_status(HttpResponse::Status::OK);
+
+    return response;
 }
 
 std::string ResponseFactory::get_content_type(const fs::path &file_path) {

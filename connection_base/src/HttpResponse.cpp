@@ -115,5 +115,13 @@ void HttpResponse::set_status(HttpResponse::Status s) {
     status = s;
 }
 
+std::string HttpResponse::get_status_text() {
+    return get_status_text(status);
+}
+
+HttpResponse::Status HttpResponse::get_status_code() {
+    return status;
+}
+
 
 
