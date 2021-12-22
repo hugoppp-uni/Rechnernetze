@@ -1,10 +1,6 @@
-//
-// Created by maik2 on 14.12.2021.
-//
+#pragma once
 
-#ifndef RN_HTTPREQUEST_H
-#define RN_HTTPREQUEST_H
-
+#include <map>
 #include <string>
 
 class HttpRequest {
@@ -15,13 +11,12 @@ public:
     Method get_method() const;
     std::string get_version() const;
     std::string get_uri() const;
-    std::string get_headers() const;
 
 private:
     Method method = Method::GET;
-    std::string uri;
-    std::string http_version;
-    std::string headers;
+    std::string uri {};
+    std::string http_version {};
+    std::map<std::string, std::string> headers {};
+    std::optional<std::tuple<int,int>> range{std::nullopt};
 };
 
-#endif //RN_HTTPREQUEST_H
