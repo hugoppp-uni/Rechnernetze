@@ -4,6 +4,7 @@
 #include <vector>
 #include <sstream>
 
+
 class HttpResponse {
 public:
     /*
@@ -15,6 +16,7 @@ public:
      * 5xx: Server Error
      */
     enum Status {
+        NONE = 0,
         OK = 200,
         ACCEPTED = 202,
         PARTIAL_CONTENT = 206,
@@ -107,7 +109,7 @@ public:
     std::string build();
 
 private:
-    Status status = INVALID_CODE;
+    Status status = NONE;
     std::string header;
     std::vector<char> payload;
     std::stringstream result_stream;
