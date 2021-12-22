@@ -1,5 +1,6 @@
 #include "connection.hpp"
 #include "logger.hpp"
+#include "HttpRequest.h"
 
 #include <stdexcept>
 #include <unistd.h>
@@ -51,7 +52,7 @@ std::vector<char> Connection::receive_bytes() const {
     do {
         size = recv(file_descriptor, &recv_buffer[0], recv_buffer.size(), 0);
         result_buffer.insert(result_buffer.end(), recv_buffer.begin(), recv_buffer.begin() + size);
-    } while ( size > 0 && std::string{result_buffer.end()-3, result_buffer.end()} == "\r\n\r\n" );
+    } while (size > 0 && std::string{result_buffer.end() - 3, result_buffer.end()} == "\r\n\r\n");
 
     if (size < 0) {
         std::cerr << "error occurred during receive_bytes: " << strerror(errno) << std::endl;
@@ -100,10 +101,37 @@ std::shared_ptr<Address> Connection::get_address() {
     return address;
 }
 
-void Connection::send(const HttpResponse &response) const {
+void Connection::send(HttpResponse &response) const {
+
+    auto data = response.get_payload_as_binary();
+    response.add_header("Content-Length", std::to_string(data.size()));
+
     const std::string &header = response.build_header();
     send(header);
-    auto data =  response.get_payload_as_binary();
-    ::send(file_descriptor,  data.data(), data.size(), 0);
+    ::send(file_descriptor, data.data(), data.size(), 0);
 }
 
+void Connection::send(HttpResponse &response, Range range) const {
+    auto data = response.get_payload_as_binary();
+
+    //when the range start is not inside data, just send everything
+    if (range.start > data.size()) {
+        send(response);
+        return;
+    }
+
+    //when the range end is not inside data, just send until the end
+    if (range.end.has_value() && range.end.value() > data.size())
+        range.end = std::nullopt;
+
+    auto begin = data.begin() + range.start;
+    auto size = range.end.has_value() ?
+                (range.end.value() - range.start) + 1 :
+                data.size() - range.start;
+
+    response.add_header("Content-Length", std::to_string(size));
+
+    const std::string &header = response.build_header();
+    send(header);
+    ::send(file_descriptor, begin.base(), size, 0);
+}

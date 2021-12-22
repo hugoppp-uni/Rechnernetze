@@ -105,10 +105,9 @@ void handle_incoming_request(std::unique_ptr<Connection> cnn, const Options &opt
     try{
         request = std::make_unique<HttpRequest>(received);
     }
-    catch(...){
-        std::string err_str{"Could not parse request"};
-        Logger::warn(err_str);
-        auto response = ResponseFactory::create_from_plain_text(HttpResponse::Status::BAD_REQUEST, err_str);
+    catch(std::exception &e){
+        Logger::warn(e.what());
+        auto response = ResponseFactory::create_from_plain_text(HttpResponse::Status::BAD_REQUEST, e.what());
         cnn->send(response);
         return;
     }
@@ -123,7 +122,10 @@ void handle_incoming_request(std::unique_ptr<Connection> cnn, const Options &opt
                                             fmt::arg("text", response.get_status_text()),
                                             fmt::arg("log", log));
     Logger::data(string);
-    cnn->send(response);
+    if (request->get_range().has_value())
+        cnn->send(response, request->get_range().value());
+    else
+        cnn->send(response);
 
     if (opt.sleep_after_send > 0) {
         Logger::warn(fmt::format("sleeping for {} seconds", opt.sleep_after_send));

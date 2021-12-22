@@ -37,13 +37,19 @@ HttpRequest::HttpRequest(std::string const &data) {
     {
         if (headers.contains("Content-Range")) {
             std::string range_string{headers["Content-Range"]};
-            std::regex regex("(\\d+)-(\\d+)");
+            std::regex regex("(\\d+)-(\\d*)");
             std::smatch matches;
             std::regex_match(range_string, matches, regex);
             if (std::regex_match(range_string, matches, regex) && matches.size() == 3) {
-                int begin{std::stoi(matches[1])};
-                int end{std::stoi(matches[2])};
-                range = {begin, end};
+                int start{std::stoi(matches[1])};
+                range = Range{.start = start};
+
+                if (matches[2].length() > 0){
+                    range.value().end = std::stoi(matches[2]);
+                    if (range->end < range->start){
+                        throw std::invalid_argument("Range end can't be smaller than range start");
+                    }
+                }
             }
         }
     }
@@ -60,4 +66,8 @@ std::string HttpRequest::get_version() const {
 
 std::string HttpRequest::get_uri() const {
     return uri;
+}
+
+const std::optional<Range> & HttpRequest::get_range() const {
+    return range;
 }
