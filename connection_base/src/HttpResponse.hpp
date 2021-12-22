@@ -42,46 +42,46 @@ public:
      * Build Response from byte array
      * @param data byte-array of data which should be parsed as response
      */
-    explicit HttpResponse(const std::vector<char>& data);
+    explicit HttpResponse(const std::vector<char> &data);
 
     /**
      * Get header data of Response
      * @return HTTP Header
      */
-    std::string get_metadata();
+    std::string get_metadata() const;
 
     /**
      * Gets the content of the Response
      * @return Response content as byte array
      */
-    std::vector<char> get_payload_as_binary();
+    std::vector<char> get_payload_as_binary() const;
 
     /**
      * Get the content of the response
      * @return Response content as string
      */
-    std::string get_payload_as_string();
+    std::string get_payload_as_string() const;
 
     /**
      * Write content of the Response to file
      * @param filename Path to the file that should be written to
      * @return
      */
-    bool write_to_file(const std::string& filename);
+    bool write_to_file(const std::string &filename);
 
     /**
      * Get text for the HTTP Status-Code
      * @param status HTTP-Status
      * @return status as string
      */
-    static std::string get_status_text(Status &status);
+    static std::string get_status_text(Status status);
 
     /**
      * Adds a new field to the HTTP header as key-value pair
      * @param key : Key (e.g. Content-Range)
      * @param value : Value (e.g. 0-1024)
      */
-    void add_header(const std::string& key, const std::string& value);
+    void add_header(const std::string &key, const std::string &value);
 
     /**
      * Set the status of the Response
@@ -89,32 +89,32 @@ public:
      */
     void set_status(Status s);
 
-    std::string get_status_text();
-    Status get_status_code();
+    std::string get_status_text() const;
+
+    Status get_status_code() const;
 
     /**
      * Sets the content that should be sent with the response
      * @param data byte-array with data
      */
-    void set_content(const std::vector<char>& data);
+    void set_content(const std::vector<char> &data);
 
     /**
      * Sets the content that should be sent with the response
      * @param data content as string
      */
-    void set_content(const std::string& data);
+    void set_content(const std::string &data);
 
     /**
      * Builds the HTTP-Response:
      * Status-Line + Header + Payload
      * @return the final HTTP-Response
      */
-    std::string build();
+    std::string build_header() const;
 
 private:
     Status status = Status::NONE;
     std::string header;
     std::vector<char> payload;
-    std::stringstream result_stream;
 
 };

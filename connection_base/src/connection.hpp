@@ -19,6 +19,7 @@ public:
     [[nodiscard]] std::string receive_string() const;
     [[nodiscard]] HttpResponse receive_http_response() const;
     void send(const std::string& message) const;
+    void send(const HttpResponse& response) const;
     void send_slow(const std::string& message, int n_bytes, int timeout_ms) const;
 
     std::shared_ptr<Address> get_address();

@@ -100,3 +100,10 @@ std::shared_ptr<Address> Connection::get_address() {
     return address;
 }
 
+void Connection::send(const HttpResponse &response) const {
+    const std::string &header = response.build_header();
+    send(header);
+    auto data =  response.get_payload_as_binary();
+    ::send(file_descriptor,  data.data(), data.size(), 0);
+}
+

@@ -34,15 +34,15 @@ HttpResponse::HttpResponse(const std::vector<char> &data) {
     }
 }
 
-std::string HttpResponse::get_metadata() {
+std::string HttpResponse::get_metadata() const {
     return header;
 }
 
-std::vector<char> HttpResponse::get_payload_as_binary() {
+std::vector<char> HttpResponse::get_payload_as_binary() const {
     return payload;
 }
 
-std::string HttpResponse::get_payload_as_string() {
+std::string HttpResponse::get_payload_as_string() const {
     return {payload.begin(), payload.end()};
 }
 
@@ -57,7 +57,7 @@ bool HttpResponse::write_to_file(const std::string &filename) {
         output_file << c;
     }
 
-    Logger::info( "Payload of reponse was written to file: " + filename);
+    Logger::info("Payload of reponse was written to file: " + filename);
     output_file.close();
     return true;
 }
@@ -67,43 +67,63 @@ void HttpResponse::set_content(const std::vector<char> &data) {
 }
 
 void HttpResponse::set_content(const std::string &data) {
-    payload = { data.begin(), data.end() };
+    payload = {data.begin(), data.end()};
 }
 
 void HttpResponse::add_header(const std::string &key, const std::string &value) {
     header += key + ": " + value + "\r\n";
 }
 
-std::string HttpResponse::get_status_text(HttpResponse::Status &status) {
+std::string HttpResponse::get_status_text(HttpResponse::Status status){
     switch (status) {
-        case Status::OK:                        return "OK";
-        case Status::ACCEPTED:                  return "Accepted";
-        case Status::PARTIAL_CONTENT:           return "Partial Content";
-        case Status::MULTIPLE_CHOICES:          return "Multiple Choices";
-        case Status::MOVED_PERMANENTLY:         return "Moved Permanently";
-        case Status::BAD_REQUEST:               return "Bad Request";
-        case Status::UNAUTHORIZED:              return "Unauthorized";
-        case Status::FORBIDDEN:                 return "Forbidden";
-        case Status::NOT_FOUND:                 return "Not Found";
-        case Status::METHOD_NOT_ALLOWED:        return "Method Not Allowed";
-        case Status::NOT_ACCEPTABLE:            return "Not Acceptable";
-        case Status::REQUEST_TIMEOUT:           return "Request Timeout";
-        case Status::UNSUPPORTED_MEDIA_TYPE:    return "Unsupported Media Type";
-        case Status::INTERNAL_SERVER_ERROR:     return "Internal Server Error";
-        case Status::NOT_IMPLEMENTED:           return "Not Implemented";
-        case Status::SERVICE_UNAVAILABLE:       return "Service Unavailable";
-        case Status::VERSION_NOT_SUPPORTED:     return "HTTP Version Not Suported";
+        case Status::OK:
+            return "OK";
+        case Status::ACCEPTED:
+            return "Accepted";
+        case Status::PARTIAL_CONTENT:
+            return "Partial Content";
+        case Status::MULTIPLE_CHOICES:
+            return "Multiple Choices";
+        case Status::MOVED_PERMANENTLY:
+            return "Moved Permanently";
+        case Status::BAD_REQUEST:
+            return "Bad Request";
+        case Status::UNAUTHORIZED:
+            return "Unauthorized";
+        case Status::FORBIDDEN:
+            return "Forbidden";
+        case Status::NOT_FOUND:
+            return "Not Found";
+        case Status::METHOD_NOT_ALLOWED:
+            return "Method Not Allowed";
+        case Status::NOT_ACCEPTABLE:
+            return "Not Acceptable";
+        case Status::REQUEST_TIMEOUT:
+            return "Request Timeout";
+        case Status::UNSUPPORTED_MEDIA_TYPE:
+            return "Unsupported Media Type";
+        case Status::INTERNAL_SERVER_ERROR:
+            return "Internal Server Error";
+        case Status::NOT_IMPLEMENTED:
+            return "Not Implemented";
+        case Status::SERVICE_UNAVAILABLE:
+            return "Service Unavailable";
+        case Status::VERSION_NOT_SUPPORTED:
+            return "HTTP Version Not Suported";
+        case Status::NONE:
+            return "unknown";
     }
     return "UNKNOWN STATUS CODE";
 }
 
-std::string HttpResponse::build() {
+std::string HttpResponse::build_header() const{
+    std::stringstream result_stream;
     result_stream.clear();
 
     // TODO: return Status-Line + Header + Data
     // Status-Line = HTTP-Version SP Status-Code SP Reason-Phrase CRLF
     result_stream << "HTTP/1.1 " << static_cast<int>(status) << " " << get_status_text(status) << " \r\n";
-    result_stream << header << "\r\n" << std::string{payload.begin(), payload.end()};
+    result_stream << header << "\r\n";// << std::string{payload.begin(), payload.end()};
     return result_stream.str();
 }
 
@@ -111,17 +131,18 @@ HttpResponse::HttpResponse() {
     status = Status::ACCEPTED; // Initially unknown
 }
 
-void HttpResponse::set_status(HttpResponse::Status s) {
+void HttpResponse::set_status(const HttpResponse::Status s) {
     status = s;
 }
 
-std::string HttpResponse::get_status_text() {
+std::string HttpResponse::get_status_text() const{
     return get_status_text(status);
 }
 
-HttpResponse::Status HttpResponse::get_status_code() {
+HttpResponse::Status HttpResponse::get_status_code() const {
     return status;
 }
+
 
 
 
