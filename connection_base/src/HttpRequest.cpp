@@ -7,15 +7,17 @@ HttpRequest::HttpRequest(std::string const &data) {
     {
         std::string status_line;
         std::getline(iss, status_line);
-        std::regex regex("(GET) (/.*)* (HTTP/1.1)\r");
+        std::regex regex("(.*) (/.*)* (HTTP/1.1)\r");
         std::smatch matches;
         std::regex_match(status_line, matches, regex);
         if (!std::regex_match(status_line, matches, regex) /*|| matches.size() != 3*/) {
             throw std::invalid_argument("Failed to parse Status-Line: " + status_line);
         }
 
-        if (matches[1] == "GET")
-            method = Method::GET;
+        method = matches[1] == "GET"
+                 ? Method::GET
+                 : Method::NONE;
+
         uri = matches[2];
         http_version = matches[3];
     }

@@ -6,7 +6,7 @@
 class HttpRequest {
 public:
     explicit HttpRequest(const std::string &data);
-    enum class Method { GET, POST, PUT };
+    enum class Method { NONE, GET, POST, PUT };
 
     Method get_method() const;
     std::string get_version() const;

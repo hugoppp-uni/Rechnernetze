@@ -18,7 +18,7 @@ HttpResponse ResponseFactory::create(const HttpRequest &request,
     // Check if method is supported (currently only GET)
     if (request.get_method() != HttpRequest::Method::GET) {
         std::string reason{"Sorry, this method is not allowed. Currently only GET is supported."};
-        auto response = build_from_plain_text(HttpResponse::Status::METHOD_NOT_ALLOWED, reason);
+        auto response = create_from_plain_text(HttpResponse::Status::METHOD_NOT_ALLOWED, reason);
         log = reason;
         return response;
     }
@@ -28,40 +28,40 @@ HttpResponse ResponseFactory::create(const HttpRequest &request,
 
     HttpResponse response;
     if (is_directory(path)) {
-        response = build_from_directory(path, request, log);
+        response = create_from_directory(path, request.get_uri(), log);
     } else if (exists(path)) {
-        response = build_from_file(path);
+        response = create_from_file(path);
         log = fmt::format("file {}", path.string());
     } else {
         std::string reason{fmt::format("Requested file {} does not exist. Please provide a correct file path", uri)};
-        response = build_from_plain_text(HttpResponse::Status::BAD_REQUEST, reason);
+        response = create_from_plain_text(HttpResponse::Status::BAD_REQUEST, reason);
         log = reason;
     }
 
     return response;
 }
 
-HttpResponse ResponseFactory::build_from_plain_text(HttpResponse::Status status, std::string &text) {
+HttpResponse ResponseFactory::create_from_plain_text(HttpResponse::Status status, const std::string &text) {
     HttpResponse response;
     response.add_header("Content-Type", "text/plain");
-    response.set_content(text);
+    response.set_content(text + "\r\n");
     response.set_status(status);
     return response;
 }
 
-HttpResponse ResponseFactory::build_from_directory(const std::filesystem::path &dir_path,
-                                                   const HttpRequest &request,
-                                                   std::string &log) {
+HttpResponse ResponseFactory::create_from_directory(const std::filesystem::path &dir_path,
+                                                    const std::string &uri,
+                                                    std::string &log) {
     fs::path index_html_path = dir_path / "index.html";
 
     if (exists(index_html_path)) {
         log = fmt::format("file {}", index_html_path.string());
-        return build_from_file(index_html_path);
+        return create_from_file(index_html_path);
     }
 
     // index.html nicht vorhanden: Sende Listing der Dateien im Ordner
     const std::string file_listing = fmt::format("Directory content of '{}': \n{}",
-                                                 request.get_uri(),
+                                                 uri,
                                                  get_plain_text_file_listing(dir_path));
 
     HttpResponse response;
@@ -111,7 +111,7 @@ std::string ResponseFactory::get_plain_text_file_listing(const fs::path &dir_pat
     return file_listing.str();
 }
 
-HttpResponse ResponseFactory::build_from_file(const fs::path &file_path) {
+HttpResponse ResponseFactory::create_from_file(const fs::path &file_path) {
     HttpResponse response;
     response.add_header("Content-Type", get_content_type(file_path));
     response.set_content(helper::read_file(file_path));

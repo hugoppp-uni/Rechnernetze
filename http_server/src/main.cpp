@@ -11,6 +11,7 @@
 void remove_handler_thread(std::thread::id id);
 
 void handle_incoming_request(std::unique_ptr<Connection> cnn, const Options &opt);
+void handle_incoming_request_no_expt(std::unique_ptr<Connection> cnn, const Options &opt);
 
 std::list<std::thread> running_handler_threads{};
 std::mutex handler_threads_mutex{};
@@ -44,7 +45,7 @@ int main(int argc, char **argv) {
                 if (cnn) {
                     std::lock_guard<std::mutex> lock{handler_threads_mutex};
                     running_handler_threads.emplace_back(
-                        std::thread(handle_incoming_request, std::move(cnn), std::ref(opt))
+                        std::thread(handle_incoming_request_no_expt, std::move(cnn), std::ref(opt))
                     );
                 } else {
                     Logger::error("Error while accepting client connection");
@@ -100,11 +101,22 @@ void handle_incoming_request(std::unique_ptr<Connection> cnn, const Options &opt
     std::string received = cnn->receive_string();
 
     // Build request out of received data and handle it
-    HttpRequest request{received};
-    Logger::data(fmt::format("[{}] requested {}", peer_address, request.get_uri()));
+    std::unique_ptr<HttpRequest> request{nullptr};
+    try{
+        request = std::make_unique<HttpRequest>(received);
+    }
+    catch(...){
+        std::string err_str{"Could not parse request"};
+        Logger::warn(err_str);
+        auto response = ResponseFactory::create_from_plain_text(HttpResponse::Status::BAD_REQUEST, err_str);
+        cnn->send(response.build());
+        return;
+    }
+
+    Logger::data(fmt::format("[{}] requested {}", peer_address, request->get_uri()));
 
     std::string log{};
-    HttpResponse response = ResponseFactory::create(request, opt.document_root_folder, log);
+    HttpResponse response = ResponseFactory::create(*request, opt.document_root_folder, log);
     const std::string &string = fmt::format("[{address}] responding with '{code} {text}' '{log}'",
                                             fmt::arg("address", peer_address),
                                             fmt::arg("code", response.get_status_code()),
@@ -121,5 +133,14 @@ void handle_incoming_request(std::unique_ptr<Connection> cnn, const Options &opt
     std::lock_guard<std::mutex> lock{handler_threads_mutex};
     if (remove_handler_threads_on_completion) {
         remove_handler_thread(std::this_thread::get_id());
+    }
+}
+
+void handle_incoming_request_no_expt(std::unique_ptr<Connection> cnn, const Options &opt) {
+    try {
+        handle_incoming_request(std::move(cnn), opt);
+    }
+    catch (...){
+        Logger::error("exception occurred while handling request");
     }
 }
