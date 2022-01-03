@@ -12,6 +12,9 @@ struct UrlInfo{
      */
     const std::string file_name;
 
+    const std::optional<unsigned short> port;
+
+
 };
 
 class UrlParser {

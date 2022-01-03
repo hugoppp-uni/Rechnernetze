@@ -17,7 +17,7 @@ Connection::Connection(const std::shared_ptr<Address> &address, int file_descipt
 
 }
 
-Connection::Connection(const std::string &host) : Connection(std::make_shared<Address>(host)) {}
+Connection::Connection(const std::string &host, std::optional<unsigned short> port) : Connection(std::make_shared<Address>(host, port)) {}
 
 Connection::Connection(const std::shared_ptr<Address> &address) : address(address) {
 

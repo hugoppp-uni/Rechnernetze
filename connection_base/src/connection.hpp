@@ -10,9 +10,10 @@
 class Connection{
 public:
     explicit Connection(const std::shared_ptr<Address>& address);
-    explicit Connection(const std::string& host);
+    explicit Connection(const std::string &host, std::optional<unsigned short> port = std::nullopt);
 
     Connection(const std::shared_ptr<Address>& address, int file_descriptor);
+
 
     virtual ~Connection();
 

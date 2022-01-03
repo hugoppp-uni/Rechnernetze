@@ -4,7 +4,7 @@
 #include <memory>
 #include "address.hpp"
 
-Address::Address(const std::string &host_address) {
+Address::Address(const std::string &host_address, std::optional<unsigned short> port) {
     struct addrinfo hints{.ai_family = AF_UNSPEC, .ai_socktype = SOCK_STREAM};
 
     //todo error handling
@@ -14,6 +14,10 @@ Address::Address(const std::string &host_address) {
 
     sockaddr_in_use = address_info->ai_addr;
     sockaddr_in_use_length = address_info->ai_addrlen;
+
+    //todo ugly
+    if (port)
+        ((sockaddr_in*)(address_info->ai_addr))->sin_port = htons(port.value());
 }
 
 Address::Address(struct sockaddr *sockaddr, socklen_t socklen) : address_info(nullptr),

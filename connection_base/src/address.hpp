@@ -2,12 +2,13 @@
 
 #include <netdb.h>
 #include <iostream>
+#include <optional>
 
 #include <string>
 
 class Address {
 public :
-    explicit Address(const std::string &host_address) ;
+    explicit Address(const std::string &host_address, std::optional<unsigned short> port = std::nullopt);
     Address(struct sockaddr *sockaddr, socklen_t socklen);
 
     virtual ~Address();
