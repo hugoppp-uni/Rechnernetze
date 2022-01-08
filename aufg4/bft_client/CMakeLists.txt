@@ -7,3 +7,7 @@ add_executable(bft_client
         main.cpp
         options.hpp
         )
+
+target_include_directories(bft_client PRIVATE
+        ${CMAKE_SOURCE_DIR}/bft_base
+        )

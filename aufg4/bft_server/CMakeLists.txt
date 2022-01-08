@@ -5,4 +5,10 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_executable(bft_server
         main.cpp
+        file_writer.cpp
+        file_writer.hpp
+        )
+
+target_include_directories(bft_server PRIVATE
+        ${CMAKE_SOURCE_DIR}/bft_base
         )

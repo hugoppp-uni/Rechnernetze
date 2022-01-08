@@ -3,19 +3,15 @@
 
 class Options {
 public:
-    std::string server_ip;
-    unsigned short server_port;
-    std::string file_path;
-    int retransmission_timeout_ms;
+    unsigned short port;
+    std::string directory;
     bool debug;
 
     Options(int argc, char **argv) {
-        cxxopts::Options options("bft_client", "Basic File Transfer Protocol Client");
+        cxxopts::Options options("bft_server", "Basic File Transfer Protocol Server");
 
         options.add_options()
 
-            ("r,retrans_timeout_ms", "Retransmission timeout (RTO) in ms",
-             cxxopts::value(retransmission_timeout_ms)->default_value("2000"))
             ("d,debug", "Produce debug output to stderr",
              cxxopts::value(debug))
 
@@ -23,13 +19,12 @@ public:
             ("h,help", "Give this help list")
 
             //positional
-            ("server", "server", cxxopts::value(server_ip))
-            ("port", "port", cxxopts::value(server_port))
-            ("file", "file", cxxopts::value(file_path));
+            ("port", "port", cxxopts::value(port))
+            ("directory", "directory", cxxopts::value(directory));
 
-        options.positional_help("SERVER PORT FILE");
+        options.positional_help("PORT DIRECTORY");
 
-        options.parse_positional({"server", "port", "file"});
+        options.parse_positional({"port", "directory"});
         auto result = options.parse(argc, argv);
 
         handle_info_params_and_exit_if_needed(options, result);
