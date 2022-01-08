@@ -1,0 +1,8 @@
+/test/download/**/*.jpg
+/test/download/**/*.jpeg
+/test/download/**/*.svg
+/test/download/**/*.png
+/test/download/**/*.html
+/test/download/**/*.txt
+/test/download/**/*.pdf
+/test/download/**/*.mp4
