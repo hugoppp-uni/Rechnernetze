@@ -5,4 +5,5 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_executable(bft_client
         main.cpp
+        options.hpp
         )

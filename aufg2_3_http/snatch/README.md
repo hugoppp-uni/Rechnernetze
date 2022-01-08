@@ -25,17 +25,17 @@
 ```mermaid
 sequenceDiagram
     participant client
-    participant server
-    client->>server: getaddrinfo(hostname)
-    server-->>client: getaddrinfo(): ip_addr
-    client->>server: connect(ip_addr)
-    server-->>client: connect(): SUCCESS
+    participant server_ip
+    client->>server_ip: getaddrinfo(hostname)
+    server_ip-->>client: getaddrinfo(): ip_addr
+    client->>server_ip: connect(ip_addr)
+    server_ip-->>client: connect(): SUCCESS
     
-    client-)server: send(HttpRequest)
-    server-->>client: send(): ACK
+    client-)server_ip: send(HttpRequest)
+    server_ip-->>client: send(): ACK
     loop while bytes_recvd > 0
-        client->>server: recv(CHUNK_SIZE)
-        server-->>client: recv(): buffer[CHUNK_SIZE]
+        client->>server_ip: recv(CHUNK_SIZE)
+        server_ip-->>client: recv(): buffer[CHUNK_SIZE]
         client->>+client: result_buffer += buffer
     end
         alt write_to_file
@@ -44,8 +44,8 @@ sequenceDiagram
             client->>client: std::cout << result_buffer
         end
     
-    client->>server: close(ip_addr)
-    server-->>client: close(): SUCCESS
+    client->>server_ip: close(ip_addr)
+    server_ip-->>client: close(): SUCCESS
 ```
 
 # Initialisierung
