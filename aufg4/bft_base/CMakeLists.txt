@@ -7,4 +7,5 @@ add_library(bft_base STATIC
         bft_datagram.hpp
         bft_datagram.cpp
         logger.hpp
+        lib/include/CRC.h
         )
