@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <array>
+#include "lib/include/CRC.h"
 
 enum class Flags : unsigned short {
     None = 0,
@@ -28,23 +29,22 @@ Flags operator&(Flags lhs, Flags rhs) {
 }
 
 
-#define header_size (3 * sizeof(short))
-#define max_digeram_size 512
+#define HEADER_SIZE (3 * sizeof(short))
+#define MAX_DATAGRAM_SIZE 512
 
-struct BftDatagram {
-    unsigned short checksum;
-    unsigned short payload_size;
+class BftDatagram {
+
+public:
+    explicit BftDatagram();
+    explicit BftDatagram(Flags flags);
     Flags flags;
-    std::array<char, max_digeram_size - header_size> payload;
+    unsigned int checksum{};
+    unsigned short payload_size{};
+    std::array<char, MAX_DATAGRAM_SIZE - HEADER_SIZE> payload{};
 
-
-    [[nodiscard]] short calc_checksum() const {
-        return static_cast<short>(flags);
-    }
-
-    [[nodiscard]] int size() const{
-        return payload_size + header_size;
-    }
+    unsigned int calc_checksum();
+    [[nodiscard]] unsigned short size() const;
+    std::string Payload();
 
 };
 

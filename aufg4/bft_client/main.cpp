@@ -28,16 +28,19 @@ int main(int argc, char **args) {
         .sin_addr = {inet_addr(options.server_ip.c_str())},
     };
 
-    BftDatagram bftDatagram{
-        .checksum = 0,
+    BftDatagram datagram{Flags::SYN};
+    datagram.payload_size = static_cast<unsigned short>(options.file_path.size());
+    datagram.payload = {0};
+/*    BftDatagram bftDatagram{
         .payload_size = static_cast<unsigned short>(options.file_path.size()),
         .flags = Flags::SYN,
         .payload = {0},
-    };
+    };*/
+    datagram.calc_checksum();
 
-    options.file_path.copy(&bftDatagram.payload[0], options.file_path.size());
+    options.file_path.copy(&datagram.payload[0], options.file_path.size());
 
-    int bytes_sent = sendto(sock, &bftDatagram, bftDatagram.size(), 0, (struct sockaddr *) &sa, sizeof sa);
+    ssize_t bytes_sent = sendto(sock, &datagram, datagram.size(), 0, (struct sockaddr *) &sa, sizeof sa);
 
     if (bytes_sent < 0) {
         printf("Error sending packet: %s\n", strerror(errno));

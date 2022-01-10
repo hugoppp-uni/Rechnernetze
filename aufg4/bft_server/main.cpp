@@ -10,6 +10,11 @@
 #include "logger.hpp"
 #include <csignal>
 
+#include "lib/include/CRC.h"
+#include <iomanip>  // Includes ::std::hex
+#include <iostream> // Includes ::std::cout
+#include <cstdint>  // Includes ::std::uint32_t
+
 void handle_datagram(const BftDatagram &datagram);
 
 void signalHandler(int signum) {
@@ -44,7 +49,7 @@ int main(int argc, char **args) {
     }
 
     ssize_t recsize;
-    BftDatagram datagram{0};
+    BftDatagram datagram;
 
     for (;;) {
 
@@ -64,25 +69,28 @@ int main(int argc, char **args) {
 
 static std::unique_ptr<FileWriter> fileWriter;
 
-void handle_datagram(const BftDatagram &datagram) {
+void handle_datagram(BftDatagram &datagram) {
+    Logger::info("Received new datagram");
+    std::cout << "CRC32: " << std::hex << datagram.calc_checksum() << std::endl;
     if (datagram.calc_checksum() != datagram.checksum) {
         //send ERR
+        std::cout << "CRC32 is not valid!" << std::endl;
         return;
     }
 
     if ((datagram.flags & Flags::SYN) == Flags::SYN) {
         //todo check checksum
-        std::string filename = std::string{datagram.payload.begin(), datagram.payload.begin() + datagram.payload_size};
+        std::string filename = datagram.Payload();
         Logger::debug("Receiving file: " + filename);
         fileWriter = std::make_unique<FileWriter>(filename);
     }
 
-    fileWriter->writeBytes(
+/*    fileWriter->writeBytes(
         std::vector<unsigned char>(
             datagram.payload.begin(),
             datagram.payload.begin() + datagram.payload_size
         )
-    );
+    );*/
 
 
 }
