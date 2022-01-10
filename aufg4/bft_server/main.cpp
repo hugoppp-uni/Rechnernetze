@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <unistd.h> /* for close() for socket */
+#include "logger.hpp"
 
 void handle_datagram(const BftDatagram &datagram);
 
@@ -14,6 +15,13 @@ void handle_datagram(const BftDatagram &datagram);
 int main(int argc, char **args) {
 
     Options options{argc, args};
+    if (options.debug) {
+        Logger::info("BFT Server started in Debug mode");
+    } else {
+        Logger::info("BFT Server started in Production mode");
+    }
+    Logger::info("Listening on port " + std::to_string(options.port));
+    Logger::info("Incoming files will be saved into folder: " + options.directory);
 
     struct sockaddr_in any_addr{
         .sin_family = AF_INET,
@@ -29,20 +37,20 @@ int main(int argc, char **args) {
     }
 
     ssize_t recsize;
-    BftDatagram diagram{0};
+    BftDatagram datagram{0};
 
     for (;;) {
 
         sockaddr_in client_addr{0};
         socklen_t client_addr_len = 0;
 
-        recsize = recvfrom(sock, (void *) &diagram, sizeof(BftDatagram), 0, (struct sockaddr *) &client_addr, &client_addr_len);
+        recsize = recvfrom(sock, (void *) &datagram, sizeof(BftDatagram), 0, (struct sockaddr *) &client_addr, &client_addr_len);
         if (recsize < 0) {
-            fprintf(stderr, "%s\n", strerror(errno));
+            perror("Error during receive");
             exit(EXIT_FAILURE);
         }
 
-        handle_datagram(diagram);
+        handle_datagram(datagram);
     }
 
 }
@@ -58,6 +66,7 @@ void handle_datagram(const BftDatagram &datagram) {
     if ((datagram.flags & Flags::SYN) == Flags::SYN) {
         //todo check checksum
         std::string filename = std::string{datagram.payload.begin(), datagram.payload.begin() + datagram.payload_size};
+        Logger::debug("Receiving file: " + filename);
         fileWriter = std::make_unique<FileWriter>(filename);
     }
 
