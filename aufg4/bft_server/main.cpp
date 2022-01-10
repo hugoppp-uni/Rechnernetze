@@ -8,11 +8,18 @@
 #include <netinet/in.h>
 #include <unistd.h> /* for close() for socket */
 #include "logger.hpp"
+#include <csignal>
 
 void handle_datagram(const BftDatagram &datagram);
 
+void signalHandler(int signum) {
+    Logger::debug("Interrupt signal " + std::to_string(signum) + " received.");
+    // TODO: Cleanup stuff ...
+    exit(signum);
+}
 
 int main(int argc, char **args) {
+    signal(SIGINT, signalHandler); // Cleanup when pressing CTRL+C
 
     Options options{argc, args};
     if (options.debug) {
@@ -31,7 +38,7 @@ int main(int argc, char **args) {
 
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (bind(sock, (struct sockaddr *) &any_addr, sizeof any_addr) == -1) {
-        perror("error bind failed");
+        perror("Error bind failed");
         close(sock);
         exit(EXIT_FAILURE);
     }
