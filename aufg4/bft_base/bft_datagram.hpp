@@ -32,19 +32,20 @@ Flags operator&(Flags lhs, Flags rhs) {
 #define HEADER_SIZE (3 * sizeof(short))
 #define MAX_DATAGRAM_SIZE 512
 
-class BftDatagram {
-
-public:
-    explicit BftDatagram();
-    explicit BftDatagram(Flags flags);
+struct BftDatagram {
+    unsigned int checksum;
+    unsigned short payload_size;
     Flags flags;
-    unsigned int checksum{};
-    unsigned short payload_size{};
-    std::array<char, MAX_DATAGRAM_SIZE - HEADER_SIZE> payload{};
+    std::array<char, MAX_DATAGRAM_SIZE - HEADER_SIZE> payload;
 
-    unsigned int calc_checksum();
-    [[nodiscard]] unsigned short size() const;
-    std::string Payload();
+    [[nodiscard]] unsigned int calc_checksum() {
+        checksum = CRC::Calculate(&payload_size, (size_t) sizeof(payload_size)+sizeof(flags)+payload.size(), CRC::CRC_32());
+        return checksum;
+    }
+
+    [[nodiscard]] int size() const{
+        return payload_size + (int) HEADER_SIZE;
+    }
 
 };
 

@@ -28,14 +28,11 @@ int main(int argc, char **args) {
         .sin_addr = {inet_addr(options.server_ip.c_str())},
     };
 
-    BftDatagram datagram{Flags::SYN};
-    datagram.payload_size = static_cast<unsigned short>(options.file_path.size());
-    datagram.payload = {0};
-/*    BftDatagram bftDatagram{
+    BftDatagram datagram{
         .payload_size = static_cast<unsigned short>(options.file_path.size()),
         .flags = Flags::SYN,
-        .payload = {0},
-    };*/
+        .payload = {'H', 'e', 'l', 'l', 'o'},
+    };
     datagram.calc_checksum();
 
     options.file_path.copy(&datagram.payload[0], options.file_path.size());

@@ -3,9 +3,13 @@ project(bft_base)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_library(bft_base STATIC
-        bft_datagram.hpp
-        bft_datagram.cpp
-        logger.hpp
-        lib/include/CRC.h
+#add_library(bft_base STATIC
+#        bft_datagram.hpp
+#        logger.hpp
+#        lib/include/CRC.h
+#        )
+
+add_library(bft_base INTERFACE)
+target_include_directories(bft_base INTERFACE
+        lib/include
         )

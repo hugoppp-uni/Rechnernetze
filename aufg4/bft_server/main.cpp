@@ -15,7 +15,7 @@
 #include <iostream> // Includes ::std::cout
 #include <cstdint>  // Includes ::std::uint32_t
 
-void handle_datagram(const BftDatagram &datagram);
+void handle_datagram(BftDatagram datagram);
 
 void signalHandler(int signum) {
     Logger::debug("Interrupt signal " + std::to_string(signum) + " received.");
@@ -49,7 +49,7 @@ int main(int argc, char **args) {
     }
 
     ssize_t recsize;
-    BftDatagram datagram;
+    BftDatagram datagram{0};
 
     for (;;) {
 
@@ -69,7 +69,7 @@ int main(int argc, char **args) {
 
 static std::unique_ptr<FileWriter> fileWriter;
 
-void handle_datagram(BftDatagram &datagram) {
+void handle_datagram(BftDatagram datagram) {
     Logger::info("Received new datagram");
     std::cout << "CRC32: " << std::hex << datagram.calc_checksum() << std::endl;
     if (datagram.calc_checksum() != datagram.checksum) {
@@ -80,7 +80,7 @@ void handle_datagram(BftDatagram &datagram) {
 
     if ((datagram.flags & Flags::SYN) == Flags::SYN) {
         //todo check checksum
-        std::string filename = datagram.Payload();
+        std::string filename = std::string{datagram.payload.begin(), datagram.payload.begin() + datagram.payload_size};
         Logger::debug("Receiving file: " + filename);
         fileWriter = std::make_unique<FileWriter>(filename);
     }
