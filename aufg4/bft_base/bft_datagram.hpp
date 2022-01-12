@@ -39,13 +39,20 @@ struct BftDatagram {
     std::array<char, MAX_DATAGRAM_SIZE - HEADER_SIZE> payload;
 
     [[nodiscard]] unsigned int calc_checksum() {
-        checksum = CRC::Calculate(&payload_size, (size_t) sizeof(payload_size)+sizeof(flags)+payload.size(), CRC::CRC_32());
-        return checksum;
+        return CRC::Calculate(&payload_size, (size_t) sizeof(payload_size)+sizeof(flags)+payload.size(), CRC::CRC_32());
     }
 
     [[nodiscard]] int size() const{
         return payload_size + (int) HEADER_SIZE;
     }
 
+    void build() {
+        checksum = calc_checksum();
+    }
+
+    bool check_integrity() {
+        return calc_checksum() == checksum && size() <= MAX_DATAGRAM_SIZE;
+    }
 };
+
 
