@@ -42,6 +42,12 @@ struct BftDatagram {
         return CRC::Calculate(&payload_size, (size_t) sizeof(payload_size)+sizeof(flags)+payload.size(), CRC::CRC_32());
     }
 
+    [[nodiscard]] std::string checksum_as_string() const {
+        std::stringstream stream;
+        stream << std::hex << checksum;
+        return stream.str();
+    }
+
     [[nodiscard]] int size() const{
         return payload_size + (int) HEADER_SIZE;
     }
@@ -54,5 +60,4 @@ struct BftDatagram {
         return calc_checksum() == checksum && size() <= MAX_DATAGRAM_SIZE;
     }
 };
-
 

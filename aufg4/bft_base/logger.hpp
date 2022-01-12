@@ -31,7 +31,7 @@ private:
             case level::DEBUG:
                 return "[DEBUG] ";
             case level::ERR:
-                return "[ERR] ";
+                return "[ERROR] ";
             case level::WARN:
                 return "[WARN] ";
             case level::INFO:
