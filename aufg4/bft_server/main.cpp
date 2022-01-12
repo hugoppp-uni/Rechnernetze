@@ -37,9 +37,7 @@ void receive_datagram(BftDatagram &datagram, sockaddr_in &client_addr){
 }
 
 bool check_datagram(BftDatagram &datagram) {
-    std::stringstream stream;
-    stream << "CRC32: " << std::hex << datagram.calc_checksum();
-    Logger::debug(stream.str());
+    Logger::debug(datagram.checksum_as_string());
     if ( !datagram.check_integrity() ) {
         Logger::error("Datagram is not valid!");
         return false;
