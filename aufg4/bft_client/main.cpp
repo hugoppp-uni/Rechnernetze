@@ -31,7 +31,7 @@ void send_datagram(BftDatagram &datagram, sockaddr_in &server_addr) {
         }
         Logger::debug("Waiting for response from server");
 
-        BftDatagram response{0};
+        BftDatagram response;
         int bytes_recvd = (int) recvfrom(sockfd, (void *) &response, MAX_DATAGRAM_SIZE, MSG_WAITALL,
                                          (struct sockaddr *) &server_addr, &len);
         if (bytes_recvd < 0) {
@@ -39,7 +39,7 @@ void send_datagram(BftDatagram &datagram, sockaddr_in &server_addr) {
             exit(EXIT_FAILURE);
         }
         Logger::debug("Bytes received: " + std::to_string(bytes_recvd));
-        if (response.check_integrity() && (response.flags & Flags::ACK) == Flags::ACK) { // TODO: also check SQN
+        if (response.check_integrity() && (response.get_flags() & Flags::ACK) == Flags::ACK) { // TODO: also check SQN
             Logger::debug("Received ACK");
             // TODO: Increase SQN
             success = true;
@@ -75,12 +75,8 @@ int main(int argc, char **args) {
     };
 
     Logger::debug("Start Sync with server IP " + options.server_ip);
-    BftDatagram datagram{
-        .payload_size = static_cast<unsigned short>(options.file_path.size()),
-        .flags = Flags::SYN,
-    };
-    options.file_path.copy(&datagram.payload[0], options.file_path.size());
-    datagram.build();
+
+    BftDatagram datagram(Flags::SYN, options.file_path) ;
 
     // TODO: while !EOF (File to be sent)
     send_datagram(datagram, server_addr);

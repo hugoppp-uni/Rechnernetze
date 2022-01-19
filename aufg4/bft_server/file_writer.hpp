@@ -7,7 +7,7 @@
 class FileWriter {
 public:
     FileWriter(const std::string &fileName);
-    void writeBytes(std::vector<unsigned char> data);
+    void writeBytes(const std::vector<char>& data);
 
 private:
     std::string file_name;
