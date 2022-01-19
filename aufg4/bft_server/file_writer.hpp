@@ -6,11 +6,10 @@
 
 class FileWriter {
 public:
-    FileWriter(const std::string &fileName);
+    FileWriter(std::string fileName);
     void writeBytes(const std::vector<char>& data);
+    const std::string file_name;
 
-private:
-    std::string file_name;
 
 };
 

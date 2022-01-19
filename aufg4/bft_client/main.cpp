@@ -10,35 +10,55 @@
 #include <arpa/inet.h>
 #include "logger.hpp"
 
-int sockfd;
+int sock_fd;
 // TODO: Define timer
 
 void send_datagram(BftDatagram &datagram, sockaddr_in &server_addr);
 
+int main(int argc, char **args) {
+    Options options{argc, args};
+    std::cout << "Hello Client" << std::endl;
+
+    /* create an Internet, datagram, socket using UDP */
+    sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sock_fd == -1) {
+        /* if socket failed to initialize, exit */
+        printf("Error Creating Socket");
+        exit(EXIT_FAILURE);
+    }
+
+    struct sockaddr_in server_addr{
+        .sin_family = AF_INET,
+        .sin_port = htons(options.server_port),
+        .sin_addr = {inet_addr(options.server_ip.c_str())},
+    };
+
+    Logger::info("Uploading '" + options.file_path + "' to server " + options.server_ip);
+
+    BftDatagram datagram(Flags::SYN, options.file_path);
+
+    // TODO: while !EOF (File to be sent)
+    send_datagram(datagram, server_addr);
+
+    close(sock_fd); /* close the socket */
+    return 0;
+}
+
 void send_datagram(BftDatagram &datagram, sockaddr_in &server_addr) {
-    socklen_t len = sizeof server_addr;
 
     bool success = false;
     bool timeout = false;
     while (!success) {
         // TODO: Send packet with current SQN and start timer
-        Logger::debug("Sending packet with checksum " + datagram.checksum_as_string());
-        ssize_t bytes_sent = sendto(sockfd, &datagram, datagram.size(), MSG_CONFIRM, (struct sockaddr *) &server_addr,
-                                    sizeof server_addr);
-        if (bytes_sent < 0) {
+
+        int bytes_send = datagram.send(sock_fd, server_addr);
+        if (bytes_send < 0) {
             printf("Error sending packet: %s\n", strerror(errno));
             exit(EXIT_FAILURE);
         }
-        Logger::debug("Waiting for response from server");
 
-        BftDatagram response;
-        int bytes_recvd = (int) recvfrom(sockfd, (void *) &response, MAX_DATAGRAM_SIZE, MSG_WAITALL,
-                                         (struct sockaddr *) &server_addr, &len);
-        if (bytes_recvd < 0) {
-            perror("Error during receive");
-            exit(EXIT_FAILURE);
-        }
-        Logger::debug("Bytes received: " + std::to_string(bytes_recvd));
+        BftDatagram response = BftDatagram::receive(sock_fd, server_addr);
+
         if (response.check_integrity() && (response.get_flags() & Flags::ACK) == Flags::ACK) { // TODO: also check SQN
             Logger::debug("Received ACK");
             // TODO: Increase SQN
@@ -56,31 +76,3 @@ void send_datagram(BftDatagram &datagram, sockaddr_in &server_addr) {
 }
 
 
-int main(int argc, char **args) {
-    Options options{argc, args};
-    std::cout << "Hello Client" << std::endl;
-
-    /* create an Internet, datagram, socket using UDP */
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sockfd == -1) {
-        /* if socket failed to initialize, exit */
-        printf("Error Creating Socket");
-        exit(EXIT_FAILURE);
-    }
-
-    struct sockaddr_in server_addr{
-        .sin_family = AF_INET,
-        .sin_port = htons(options.server_port),
-        .sin_addr = {inet_addr(options.server_ip.c_str())},
-    };
-
-    Logger::debug("Start Sync with server IP " + options.server_ip);
-
-    BftDatagram datagram(Flags::SYN, options.file_path) ;
-
-    // TODO: while !EOF (File to be sent)
-    send_datagram(datagram, server_addr);
-
-    close(sockfd); /* close the socket */
-    return 0;
-}

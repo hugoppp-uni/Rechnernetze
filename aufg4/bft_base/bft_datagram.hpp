@@ -2,7 +2,9 @@
 
 #include <cstddef>
 #include <array>
+#include <netinet/in.h>
 #include "lib/include/CRC.h"
+#include "logger.hpp"
 
 enum class Flags : unsigned short {
     None = 0,
@@ -26,6 +28,26 @@ Flags operator&(Flags lhs, Flags rhs) {
         static_cast<std::underlying_type<Flags>::type>(lhs) &
         static_cast<std::underlying_type<Flags>::type>(rhs)
     );
+}
+
+std::string flags_to_str(Flags flags){
+    std::stringstream ss;
+    if ((flags & Flags::ACK) == Flags::ACK)
+        ss << "ACK ";
+    if ((flags & Flags::SYN) == Flags::SYN)
+        ss << "SYN ";
+    if ((flags & Flags::ERR) == Flags::ERR)
+        ss << "ERR ";
+    if ((flags & Flags::ABR) == Flags::ERR)
+        ss << "ERR ";
+    if ((flags & Flags::FIN) == Flags::FIN)
+        ss << "FIN ";
+    if ((flags & Flags::SQN) == Flags::SQN)
+        ss << "SQN ";
+
+    std::string str = ss.str();
+    str.pop_back();
+    return str;
 }
 
 
@@ -84,12 +106,56 @@ public:
         return calc_checksum() == checksum && size() <= MAX_DATAGRAM_SIZE;
     }
 
+    static BftDatagram receive(int fd, sockaddr_in &client_addr) {
+
+        BftDatagram datagram;
+        socklen_t len = sizeof client_addr;
+
+        int bytes_recvd = (int) recvfrom(
+            fd,
+            (void *) &datagram,
+            MAX_DATAGRAM_SIZE,
+            MSG_WAITALL,
+            (struct sockaddr *) &client_addr,
+            &len);
+
+        if (bytes_recvd < 0) {
+            perror("Error during receive");
+            exit(EXIT_FAILURE);
+        }
+
+
+        Logger::debug("Received datagram " + datagram.to_string());
+        return datagram;
+    }
+
+    int send(int sockfd, const sockaddr_in &client_addr) const {
+
+        Logger::debug("Sending datagram " + to_string());
+        int bytes_send = (int) sendto(
+            sockfd,
+            (void *) this,
+            size(),
+            MSG_CONFIRM,
+            (struct sockaddr *) &client_addr,
+            sizeof client_addr);
+
+        return bytes_send;
+    }
+
     [[nodiscard]] std::vector<char> get_payload() const { return {payload.begin(), payload.begin() + payload_size}; }
     [[nodiscard]] std::string get_payload_as_string() const { return {payload.begin(), payload.begin() + payload_size}; }
     [[nodiscard]] Flags get_flags() const { return flags; }
     [[nodiscard]] int get_payload_size() const { return payload_size; }
 
-};
+    [[nodiscard]] std::string to_string() const {
+        return
+        "'" + checksum_as_string() + ": " +
+        flags_to_str(flags) +
+        ", payload size: " + std::to_string(payload_size)
+        + "'";
+    }
 
+};
 
 static_assert(sizeof(BftDatagram) == MAX_DATAGRAM_SIZE);

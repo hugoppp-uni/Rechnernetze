@@ -4,47 +4,25 @@
 
 //c
 #include <sys/socket.h>
-#include <sys/types.h>
 #include <netinet/in.h>
 #include <unistd.h> /* for close() for socket */
 #include "logger.hpp"
 #include <csignal>
 
-#include "lib/include/CRC.h"
 #include <iomanip>  // Includes ::std::hex
-#include <iostream> // Includes ::std::cout
-#include <cstdint>  // Includes ::std::uint32_t
 
-int sockfd;
+int sock_fd;
+std::unique_ptr<FileWriter> fileWriter;
 
-void handle_datagram(BftDatagram &datagram);
-BftDatagram receive_datagram(sockaddr_in &client_addr);
-bool check_datagram(BftDatagram &datagram);
+void handle_valid_datagram(BftDatagram &datagram);
 
 void signalHandler(int signum) {
     Logger::debug("Interrupt signal " + std::to_string(signum) + " received.");
     // TODO: Cleanup stuff ...
-    close(sockfd);
+    close(sock_fd);
     exit(signum);
 }
 
-BftDatagram receive_datagram(sockaddr_in &client_addr) {
-    BftDatagram datagram;
-    socklen_t len = sizeof client_addr;
-    int n = (int) recvfrom(sockfd, (void *) &datagram, MAX_DATAGRAM_SIZE, MSG_WAITALL, (struct sockaddr *) &client_addr, &len);
-    Logger::debug("Received new datagram (bytes recvd: " + std::to_string(n) + ")");
-    Logger::debug("Received payload: " + datagram.get_payload_as_string() + ", Payload Size: " + std::to_string(datagram.get_payload_size()));
-    return datagram;
-}
-
-bool check_datagram(BftDatagram &datagram) {
-    Logger::debug(datagram.checksum_as_string());
-    if ( !datagram.check_integrity() ) {
-        Logger::error("Datagram is not valid!");
-        return false;
-    }
-    return true;
-}
 
 int main(int argc, char **args) {
     signal(SIGINT, signalHandler); // Cleanup when pressing CTRL+C
@@ -58,51 +36,48 @@ int main(int argc, char **args) {
     Logger::info("Listening on port " + std::to_string(options.port));
     Logger::info("Incoming files will be saved into folder: " + options.directory);
 
-    struct sockaddr_in server_addr {
+    struct sockaddr_in server_addr{
         .sin_family = AF_INET,
         .sin_port = htons(options.port),
         .sin_addr =  {htonl(INADDR_ANY)}
     };
 
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
 
-    if ( bind(sockfd, (struct sockaddr *) &server_addr, sizeof server_addr ) == -1) {
+    if (bind(sock_fd, (struct sockaddr *) &server_addr, sizeof server_addr) == -1) {
         perror("bind failed");
         exit(EXIT_FAILURE);
     }
 
     sockaddr_in client_addr{0};
     while (true) {
-        // 1. Receive packet
-        BftDatagram datagram = receive_datagram(client_addr);
-        BftDatagram response;
-        if (check_datagram(datagram)){
-            // 2. Packet ok
-            Logger::debug("Packet ok. Handle it...");
-            handle_datagram(datagram);
-            Logger::debug("Handling done. Sending ACK.");
-            response = BftDatagram(Flags::ACK);
-        } else {
-            // 3. Bit error
-            Logger::debug("Packet not ok. Sending ERR");
-            response = BftDatagram(Flags::ERR);
-        }
-        int bytes_sent = (int) sendto(sockfd, (void *) &response, response.size(), MSG_CONFIRM, (struct sockaddr *) &client_addr, sizeof client_addr);
-        Logger::debug("ACK sent bytes: " + std::to_string(bytes_sent));
-    }
+        BftDatagram received_datagram = BftDatagram::receive(sock_fd, client_addr);
+        Flags response_flags;
 
+        if (received_datagram.check_integrity()) {
+            Logger::debug("Packet ok. Handle it...");
+            handle_valid_datagram(received_datagram);
+            Logger::debug("Handling done. Sending ACK.");
+            response_flags = Flags::ACK;
+        } else {
+            Logger::debug("Packet not ok. Sending ERR");
+            response_flags = Flags::ERR;
+        }
+
+        auto response = BftDatagram(response_flags);
+        int bytes_sent = response.send(sock_fd, client_addr);
+        if (bytes_sent <= 0)
+            Logger::error("error while sending response: " + std::string(strerror(errno)));
+    }
 }
 
-static std::unique_ptr<FileWriter> fileWriter;
-
-void handle_datagram(BftDatagram &datagram) {
+void handle_valid_datagram(BftDatagram &datagram) {
     if ((datagram.get_flags() & Flags::SYN) == Flags::SYN) {
-        Logger::debug("SYN flag is set -> Open file for writing with received payload as filename -> Set ACK flag");
         std::string filename = datagram.get_payload_as_string();
-        Logger::debug("Waiting for binary data of file: " + filename);
+        Logger::info("Receiving file '" + filename + "'");
         fileWriter = std::make_unique<FileWriter>(filename);
     } else if ((datagram.get_flags() & Flags::ABR) == Flags::ABR) {
-        Logger::debug("ABR flag is set -> Close opened file for writing and delete -> Set ACK flag");
+        Logger::warn("Got ABR, deleting '" + fileWriter->file_name + "'");
     } else {
         fileWriter->writeBytes(datagram.get_payload());
     }
