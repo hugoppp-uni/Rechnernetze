@@ -11,3 +11,5 @@ add_executable(bft_client
 target_include_directories(bft_client PRIVATE
         ${CMAKE_SOURCE_DIR}/bft_base
         )
+
+target_link_libraries(bft_client bft_base)

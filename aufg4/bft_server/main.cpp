@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 #include <unistd.h> /* for close() for socket */
 #include "logger.hpp"
+#include "flags.hpp"
 #include <csignal>
 
 #include <iomanip>  // Includes ::std::hex

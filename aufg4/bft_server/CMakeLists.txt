@@ -12,3 +12,5 @@ add_executable(bft_server
 target_include_directories(bft_server PRIVATE
         ${CMAKE_SOURCE_DIR}/bft_base
         )
+
+target_link_libraries(bft_server bft_base)

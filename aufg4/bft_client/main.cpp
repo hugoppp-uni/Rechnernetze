@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include "logger.hpp"
+#include "flags.hpp"
 
 int sock_fd;
 // TODO: Define timer
