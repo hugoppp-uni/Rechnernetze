@@ -29,9 +29,10 @@ Flags operator&(Flags lhs, Flags rhs) {
 }
 
 
-#define HEADER_SIZE (3 * sizeof(short))
+#define HEADER_SIZE (sizeof(int) + sizeof(short) + sizeof(Flags))
 #define MAX_DATAGRAM_SIZE 512
 
+#pragma pack(1)
 struct BftDatagram {
     unsigned int checksum;
     unsigned short payload_size;
@@ -39,7 +40,10 @@ struct BftDatagram {
     std::array<char, MAX_DATAGRAM_SIZE - HEADER_SIZE> payload;
 
     [[nodiscard]] unsigned int calc_checksum() {
-        return CRC::Calculate(&payload_size, (size_t) sizeof(payload_size)+sizeof(flags)+payload.size(), CRC::CRC_32());
+        //we don't want to include the checksum field itself
+        constexpr size_t crc_size = sizeof(BftDatagram) - offsetof(BftDatagram, payload_size);
+        static_assert(crc_size < MAX_DATAGRAM_SIZE);
+        return CRC::Calculate(&payload_size, crc_size, CRC::CRC_32());
     }
 
     [[nodiscard]] std::string checksum_as_string() const {
@@ -61,3 +65,4 @@ struct BftDatagram {
     }
 };
 
+static_assert(sizeof(BftDatagram) == MAX_DATAGRAM_SIZE);

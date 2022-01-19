@@ -18,7 +18,7 @@
 int sockfd;
 
 BftDatagram handle_datagram(BftDatagram &datagram);
-void receive_datagram(BftDatagram &datagram, sockaddr_in &client_addr);
+BftDatagram receive_datagram(sockaddr_in &client_addr);
 bool check_datagram(BftDatagram &datagram);
 
 void signalHandler(int signum) {
@@ -28,12 +28,14 @@ void signalHandler(int signum) {
     exit(signum);
 }
 
-void receive_datagram(BftDatagram &datagram, sockaddr_in &client_addr){
+BftDatagram receive_datagram(sockaddr_in &client_addr) {
+    BftDatagram datagram{0};
     socklen_t len = sizeof client_addr;
     int n = (int) recvfrom(sockfd, (void *) &datagram, MAX_DATAGRAM_SIZE, MSG_WAITALL, (struct sockaddr *) &client_addr, &len);
     Logger::debug("Received new datagram (bytes recvd: " + std::to_string(n) + ")");
     std::string payload_str(datagram.payload.begin(), datagram.payload.end());
     Logger::debug("Received payload: " + payload_str + ", Payload Size: " + std::to_string(datagram.payload_size));
+    return datagram;
 }
 
 bool check_datagram(BftDatagram &datagram) {
@@ -70,11 +72,10 @@ int main(int argc, char **args) {
         exit(EXIT_FAILURE);
     }
 
-    BftDatagram datagram{0};
     sockaddr_in client_addr{0};
     while (true) {
         // 1. Receive packet
-        receive_datagram(datagram, client_addr);
+        BftDatagram datagram = receive_datagram(client_addr);
         BftDatagram response{0};
         if (check_datagram(datagram)){
             // 2. Packet ok
