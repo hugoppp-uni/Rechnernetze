@@ -8,20 +8,23 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include "timer.hpp"
 #include "logger.hpp"
 
-int sockfd;
-// TODO: Define timer
+#define TIMEOUT 1000
 
+int sockfd;
 void send_datagram(BftDatagram &datagram, sockaddr_in &server_addr);
+
 
 void send_datagram(BftDatagram &datagram, sockaddr_in &server_addr) {
     socklen_t len = sizeof server_addr;
 
+    Timer timer;
     bool success = false;
-    bool timeout = false;
     while (!success) {
         // TODO: Send packet with current SQN and start timer
+        timer.start(TIMEOUT);
         Logger::debug("Sending packet with checksum " + datagram.checksum_as_string());
         ssize_t bytes_sent = sendto(sockfd, &datagram, datagram.size(), MSG_CONFIRM, (struct sockaddr *) &server_addr, sizeof server_addr);
         if (bytes_sent < 0) {
@@ -39,10 +42,11 @@ void send_datagram(BftDatagram &datagram, sockaddr_in &server_addr) {
             Logger::debug("Received ACK");
             // TODO: Increase SQN
             success = true;
-        } else if (timeout) { // TODO: check timeout correctly
+        } else if (timer.elapsed()) { // TODO: check timeout correctly
             Logger::debug("Timeout occurred. Retransmit packet...");
             // TODO: Retransmit packet
             // TODO: Restart timer
+            timer.start();
         } else { // Packet is corrupt
             // TODO: what to do if integrity check of packet has failed?
             Logger::debug("Packet seems to be corrupt.");

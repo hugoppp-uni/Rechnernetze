@@ -9,7 +9,11 @@ set(CMAKE_CXX_STANDARD 20)
 #        lib/include/CRC.h
 #        )
 
-add_library(bft_base INTERFACE)
+add_library(bft_base STATIC
+        Timer.cpp
+        Timer.hpp
+        )
+
 target_include_directories(bft_base INTERFACE
         lib/include
         )
