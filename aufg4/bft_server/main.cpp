@@ -16,7 +16,9 @@
 int sock_fd;
 std::unique_ptr<FileWriter> fileWriter;
 
-void handle_valid_datagram(BftDatagram &datagram, const std::string &dir);
+bool handle_valid_datagram(BftDatagram &datagram, const std::string &dir);
+
+void send_without_payload(Flags flags, const sockaddr_in &client_addr, bool currentSQN);
 
 void signalHandler(int signum) {
     Logger::debug("Interrupt signal " + std::to_string(signum) + " received.");
@@ -29,7 +31,9 @@ void signalHandler(int signum) {
 int main(int argc, char **args) {
     signal(SIGINT, signalHandler); // Cleanup when pressing CTRL+C
 
+    Logger::set_level(Logger::level::DATA);
     Options options{argc, args};
+
     if (options.debug) {
         Logger::info("BFT Server started in Debug mode");
     } else {
@@ -52,41 +56,68 @@ int main(int argc, char **args) {
     }
 
     sockaddr_in client_addr{0};
+
+    bool currentSQN = false;
     while (true) {
         BftDatagram received_datagram = BftDatagram::receive(sock_fd, client_addr);
-        Flags response_flags;
 
-        if (received_datagram.check_integrity()) {
-            handle_valid_datagram(received_datagram, options.directory);
-            response_flags = Flags::ACK;
-        } else {
-            response_flags = Flags::ERR;
+        if (!received_datagram.check_integrity() || received_datagram.get_SQN() != currentSQN) {
+            send_without_payload(Flags::AGN, client_addr, currentSQN);
+            continue;
         }
 
-        auto response = BftDatagram(response_flags);
-        int bytes_sent = response.send(sock_fd, client_addr);
-        if (bytes_sent <= 0)
-            Logger::error("error while sending response: " + std::string(strerror(errno)));
+        if (handle_valid_datagram(received_datagram, options.directory)) {
+            auto response = BftDatagram(Flags::ACK, currentSQN);
+            int bytes_sent = response.send(sock_fd, client_addr);
+            if (bytes_sent <= 0)
+                Logger::error("error while sending response: " + std::string(strerror(errno)));
+
+            currentSQN ^= true;
+        } else {
+            send_without_payload(Flags::ABR, client_addr, currentSQN);
+        }
+
+
     }
 }
 
-void handle_valid_datagram(BftDatagram &datagram, const std::string &dir) {
+void send_without_payload(Flags flags, const sockaddr_in &client_addr, bool currentSQN) {
+    auto response = BftDatagram(flags, currentSQN);
+    int bytes_sent = response.send(sock_fd, client_addr);
+    if (bytes_sent <= 0)
+        Logger::error("error while sending response: " + std::string(strerror(errno)));
+}
+
+/// \return false, if busy
+bool handle_valid_datagram(BftDatagram &datagram, const std::string &dir) {
     if ((datagram.get_flags() & Flags::SYN) == Flags::SYN) {
+        if (fileWriter)
+            return false;
+
         std::string filename = datagram.get_payload_as_string();
-        Logger::info("Receiving file '" + filename + "'");
-        std::string file_path = (std::filesystem::path(dir) / filename).string();
-        fileWriter = std::make_unique<FileWriter>(file_path);
+
+        const std::filesystem::path &filepath = std::filesystem::path(dir) / filename;
+        if (exists(filepath)) {
+            std::filesystem::remove(filepath);
+            Logger::info("Replacing file '" + filename + "'");
+        } else {
+            Logger::info("Creating file '" + filename + "'");
+        }
+
+        fileWriter = std::make_unique<FileWriter>(filepath.string());
     } else if ((datagram.get_flags() & Flags::ABR) == Flags::ABR) {
         Logger::warn("Got ABR, deleting '" + fileWriter->file_path + "'");
         fileWriter->abort();
     } else if ((datagram.get_flags() & Flags::FIN) == Flags::FIN) {
         Logger::warn("Upload of '" + fileWriter->file_path + "'complete");
         fileWriter = nullptr;
-    } else if (datagram.get_flags() == Flags::None) {
+    } else if ((datagram.get_flags() & (~Flags::SQN)) == Flags::None) {
         const std::vector<char> &payload = datagram.get_payload();
         fileWriter->writeBytes(payload);
         Logger::info(
             "Wrote " + std::to_string(payload.size()) + "/" + std::to_string(fileWriter->get_bytes_written()) +
             " bytes to '" + fileWriter->file_path + "'");
     }
+
+    return true;
 }

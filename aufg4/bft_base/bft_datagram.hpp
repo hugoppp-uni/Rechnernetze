@@ -16,11 +16,9 @@ class BftDatagram {
 public:
 
     BftDatagram() : checksum(0), payload_size(0), flags(Flags::None) {};
-    explicit BftDatagram(Flags flags);
-    BftDatagram(Flags flags,
-                char *data_begin,
-                char *data_end);
-    BftDatagram(Flags flags, const std::string &data);
+    explicit BftDatagram(Flags flags, bool sqn);
+    BftDatagram(Flags flags, char *data_begin, char *data_end, bool sqn);
+    BftDatagram(Flags flags, const std::string &data, bool sqn);
 
     bool check_integrity();
     int send(int sockfd, const sockaddr_in &client_addr) const;
@@ -35,6 +33,9 @@ public:
     [[nodiscard]] Flags get_flags() const { return flags; }
     [[nodiscard]] int get_payload_size() const { return payload_size; }
     [[nodiscard]] std::string checksum_as_string() const;
+    [[nodiscard]] bool get_SQN() const{
+        return (flags & Flags::SQN) == Flags::SQN;
+    }
     [[nodiscard]] int size() const {
         return payload_size + (int) HEADER_SIZE;
     }

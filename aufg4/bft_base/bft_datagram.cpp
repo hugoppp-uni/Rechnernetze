@@ -17,28 +17,31 @@ std::string BftDatagram::checksum_as_string() const {
     return stream.str();
 }
 
-BftDatagram::BftDatagram(Flags flags,
-                         char *data_begin,
-                         char *data_end)
+BftDatagram::BftDatagram(Flags flags, char *data_begin, char *data_end, bool sqn)
     : flags(flags), payload_size(data_end - data_begin) {
     std::copy(data_begin, data_end, payload.begin());
+    if (sqn)
+        this->flags = (flags | Flags::SQN);
     checksum = calc_checksum();
 }
 
-BftDatagram::BftDatagram(Flags flags)
+BftDatagram::BftDatagram(Flags flags, bool sqn)
     : flags(flags), payload_size(0) {
+    if (sqn)
+        this->flags = (flags | Flags::SQN);
     checksum = calc_checksum();
 }
 
-BftDatagram::BftDatagram(Flags flags, const std::string &data)
+BftDatagram::BftDatagram(Flags flags, const std::string &data, bool sqn)
     : flags(flags), payload_size(data.size()) {
     data.copy(&payload[0], data.size());
+    if (sqn)
+        this->flags = (flags | Flags::SQN);
     checksum = calc_checksum();
 }
 
 bool BftDatagram::check_integrity() {
-    return calc_checksum() == checksum && size() <= MAX_DATAGRAM_SIZE;
-}
+    return calc_checksum() == checksum && size() <= MAX_DATAGRAM_SIZE; }
 
 BftDatagram BftDatagram::receive(int fd, sockaddr_in &client_addr) {
 

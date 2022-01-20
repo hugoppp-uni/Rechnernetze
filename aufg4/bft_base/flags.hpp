@@ -13,10 +13,13 @@ enum class Flags : unsigned short {
     FIN = 1 << 2,
     ABR = 1 << 3,
     SYN = 1 << 4,
-    ERR = 1 << 5
+    AGN = 1 << 5
 };
 
 Flags operator|(Flags lhs, Flags rhs);
 Flags operator&(Flags lhs, Flags rhs);
+Flags operator^(Flags lhs, Flags rhs);
+Flags operator~(Flags lhs);
 std::string flags_to_str(Flags flags);
+void incrementSQN(Flags &flags);
 

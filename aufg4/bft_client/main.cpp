@@ -18,9 +18,11 @@ int sock_fd;
 
 void send_datagram(const BftDatagram &datagram, sockaddr_in &server_addr);
 
+bool currSQN = false;
+
 int main(int argc, char **args) {
     Options options{argc, args};
-    std::cout << "Hello Client" << std::endl;
+
     Logger::set_level(Logger::level::DATA);
 
     /* create an Internet, datagram, socket using UDP */
@@ -39,22 +41,25 @@ int main(int argc, char **args) {
 
     Logger::info("Uploading '" + options.file_path + "' to server " + options.server_ip);
 
-    BftDatagram syn_datagram(Flags::SYN, std::filesystem::path(options.file_path).filename());
+    BftDatagram syn_datagram(Flags::SYN , std::filesystem::path(options.file_path).filename(), currSQN);
     send_datagram(syn_datagram, server_addr);
 
     std::array<char, MAX_PAYLOAD_SIZE> send_data = {};
     std::ifstream file{options.file_path, std::ios_base::in | std::ios::binary};
+
+
     while (true) {
         file.read(send_data.data(), send_data.size());
         long bytes_read = file.gcount();
         if (bytes_read <= 0)
             break;
 
-        BftDatagram data_datagram = BftDatagram(Flags::None, send_data.begin(), send_data.begin() + bytes_read);
+        BftDatagram data_datagram = BftDatagram(Flags::None, send_data.begin(),
+                                                send_data.begin() + bytes_read, currSQN);
         send_datagram(data_datagram, server_addr);
     }
 
-    send_datagram(BftDatagram(Flags::FIN), server_addr);
+    send_datagram(BftDatagram(Flags::FIN, currSQN), server_addr);
 
     file.close();
 
@@ -64,9 +69,7 @@ int main(int argc, char **args) {
 
 void send_datagram(const BftDatagram &datagram, sockaddr_in &server_addr) {
 
-    bool success = false;
-    bool timeout = false;
-    while (!success) {
+    while (true) {
         // TODO: Send packet with current SQN and start timer
 
         int bytes_send = datagram.send(sock_fd, server_addr);
@@ -77,17 +80,15 @@ void send_datagram(const BftDatagram &datagram, sockaddr_in &server_addr) {
 
         BftDatagram response = BftDatagram::receive(sock_fd, server_addr);
 
-        if (response.check_integrity() && (response.get_flags() & Flags::ACK) == Flags::ACK) { // TODO: also check SQN
-            // TODO: Increase SQN
-            success = true;
-        } else if (timeout) { // TODO: check timeout correctly
-            Logger::debug("Timeout occurred. Retransmit packet...");
-            // TODO: Retransmit packet
-            // TODO: Restart timer
-        } else { // Packet is corrupt
-            Logger::debug("Packet seems to be corrupt.");
-            success = true;
+        if (response.check_integrity()
+            && (response.get_flags() & Flags::ACK) == Flags::ACK
+            && (response.get_SQN() == currSQN)
+            ) {
+            currSQN ^= true;
+            return;
         }
+
+        Logger::debug("Packet seems to be corrupt, resending it");
     }
 }
 
