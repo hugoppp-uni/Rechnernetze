@@ -21,6 +21,7 @@ void send_datagram(const BftDatagram &datagram, sockaddr_in &server_addr);
 int main(int argc, char **args) {
     Options options{argc, args};
     std::cout << "Hello Client" << std::endl;
+    Logger::set_level(Logger::level::DATA);
 
     /* create an Internet, datagram, socket using UDP */
     sock_fd = socket(AF_INET, SOCK_DGRAM, 0);

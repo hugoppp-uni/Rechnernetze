@@ -56,6 +56,7 @@ BftDatagram BftDatagram::receive(int fd, sockaddr_in &client_addr) {
 
 
     Logger::debug("˅ " + datagram.to_string());
+    Logger::data("\n" + datagram.get_payload_as_string());
     return datagram;
 }
 
@@ -70,6 +71,7 @@ int BftDatagram::send(int sockfd, const sockaddr_in &client_addr) const {
         (struct sockaddr *) &client_addr,
         sizeof client_addr);
 
+    Logger::data("\n" + get_payload_as_string());
     return bytes_send;
 }
 
