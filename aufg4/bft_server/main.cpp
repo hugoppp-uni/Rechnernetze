@@ -11,11 +11,12 @@
 #include <csignal>
 
 #include <iomanip>  // Includes ::std::hex
+#include <filesystem>
 
 int sock_fd;
 std::unique_ptr<FileWriter> fileWriter;
 
-void handle_valid_datagram(BftDatagram &datagram);
+void handle_valid_datagram(BftDatagram &datagram, const std::string &dir);
 
 void signalHandler(int signum) {
     Logger::debug("Interrupt signal " + std::to_string(signum) + " received.");
@@ -57,7 +58,7 @@ int main(int argc, char **args) {
 
         if (received_datagram.check_integrity()) {
             Logger::debug("Packet ok. Handle it...");
-            handle_valid_datagram(received_datagram);
+            handle_valid_datagram(received_datagram, options.directory);
             Logger::debug("Handling done. Sending ACK.");
             response_flags = Flags::ACK;
         } else {
@@ -72,11 +73,11 @@ int main(int argc, char **args) {
     }
 }
 
-void handle_valid_datagram(BftDatagram &datagram) {
+void handle_valid_datagram(BftDatagram &datagram, const std::string &dir) {
     if ((datagram.get_flags() & Flags::SYN) == Flags::SYN) {
         std::string filename = datagram.get_payload_as_string();
         Logger::info("Receiving file '" + filename + "'");
-        fileWriter = std::make_unique<FileWriter>(filename);
+        fileWriter = std::make_unique<FileWriter>(std::filesystem::path(dir) / filename);
     } else if ((datagram.get_flags() & Flags::ABR) == Flags::ABR) {
         Logger::warn("Got ABR, deleting '" + fileWriter->file_path + "'");
         fileWriter->abort();

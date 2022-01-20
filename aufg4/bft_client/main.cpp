@@ -7,14 +7,16 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
+#include <filesystem>
 #include <arpa/inet.h>
+#include <fstream>
 #include "logger.hpp"
 #include "flags.hpp"
 
 int sock_fd;
 // TODO: Define timer
 
-void send_datagram(BftDatagram &datagram, sockaddr_in &server_addr);
+void send_datagram(const BftDatagram &datagram, sockaddr_in &server_addr);
 
 int main(int argc, char **args) {
     Options options{argc, args};
@@ -36,16 +38,27 @@ int main(int argc, char **args) {
 
     Logger::info("Uploading '" + options.file_path + "' to server " + options.server_ip);
 
-    BftDatagram datagram(Flags::SYN, options.file_path);
+    BftDatagram syn_datagram(Flags::SYN, std::filesystem::path(options.file_path).filename());
+    send_datagram(syn_datagram, server_addr);
 
-    // TODO: while !EOF (File to be sent)
-    send_datagram(datagram, server_addr);
+    std::vector<char> send_data((size_t) MAX_PAYLOAD_SIZE);
+    std::ifstream file{options.file_path, std::ios_base::in | std::ios::binary};
+    while(file.read(send_data.data(), send_data.size())) {
+        send_data.resize(file.gcount());
+        BftDatagram data_datagram = BftDatagram(Flags::None, send_data);
+        send_datagram(data_datagram, server_addr);
+        send_data.resize(MAX_PAYLOAD_SIZE);
+    }
+
+    send_datagram(BftDatagram(Flags::FIN), server_addr);
+
+    file.close();
 
     close(sock_fd); /* close the socket */
     return 0;
 }
 
-void send_datagram(BftDatagram &datagram, sockaddr_in &server_addr) {
+void send_datagram(const BftDatagram &datagram, sockaddr_in &server_addr) {
 
     bool success = false;
     bool timeout = false;
@@ -69,7 +82,6 @@ void send_datagram(BftDatagram &datagram, sockaddr_in &server_addr) {
             // TODO: Retransmit packet
             // TODO: Restart timer
         } else { // Packet is corrupt
-            // TODO: what to do if integrity check of packet has failed?
             Logger::debug("Packet seems to be corrupt.");
             success = true;
         }

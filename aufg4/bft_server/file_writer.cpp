@@ -3,9 +3,15 @@
 #include <utility>
 #include <iterator>
 #include <filesystem>
+#include "logger.hpp"
 
 FileWriter::FileWriter(std::string fileName) : file_path(std::move(fileName)),
-                                               file_stream(fileName, std::ios_base::out) {
+                                               file_stream(fileName, std::ios::out| std::ios::app) {
+    if(!file_stream.is_open()) {
+        //todo proper error handling
+        Logger::error("file not opened");
+        exit(1);
+    }
 }
 
 FileWriter::~FileWriter() {

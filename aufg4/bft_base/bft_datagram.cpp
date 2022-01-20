@@ -17,8 +17,8 @@ std::string BftDatagram::checksum_as_string() const {
 
 BftDatagram::BftDatagram(Flags flags, std::vector<char> data)
     : flags(flags), payload_size(data.size()) {
-    checksum = calc_checksum();
     std::copy(data.begin(), data.end(), payload.begin());
+    checksum = calc_checksum();
 }
 
 BftDatagram::BftDatagram(Flags flags)

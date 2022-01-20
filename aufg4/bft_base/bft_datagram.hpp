@@ -7,7 +7,9 @@
 
 #define HEADER_SIZE (sizeof(int) + sizeof(short) + sizeof(Flags))
 #define MAX_DATAGRAM_SIZE 512
-using PayloadArray = std::array<char, MAX_DATAGRAM_SIZE - HEADER_SIZE>;
+#define MAX_PAYLOAD_SIZE MAX_DATAGRAM_SIZE - HEADER_SIZE
+
+using PayloadArray = std::array<char, MAX_PAYLOAD_SIZE>;
 
 #pragma pack(1)
 class BftDatagram {
