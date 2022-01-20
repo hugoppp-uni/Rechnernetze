@@ -6,7 +6,7 @@
 #include "logger.hpp"
 
 FileWriter::FileWriter(std::string file_path) : file_path(std::move(file_path)),
-                                                file_stream(this->file_path, std::ios::out | std::ios::app | std::ios::binary) {
+                                                file_stream(this->file_path, std::ios::out | std::ios::binary) {
     if (!file_stream.is_open()) {
         //todo proper error handling
         Logger::error("file not opened");
