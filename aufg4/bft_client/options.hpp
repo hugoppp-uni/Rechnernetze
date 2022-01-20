@@ -1,5 +1,6 @@
 #include <cxxopts.hpp>
 #include <iostream>
+#include <filesystem>
 
 class Options {
 public:
@@ -39,7 +40,13 @@ public:
 private:
 
     void validate_and_exit_if_needed(const cxxopts::ParseResult &result) const {
-        if (false) {
+        std::filesystem::path path = std::filesystem::path(file_path);
+        if (is_directory(path)){
+            std::cout << "Expected file but got directory '" << file_path << "'";
+            exit(1);
+        }
+        if (!exists(path)) {
+            std::cout <<"File '" << file_path << "' does not exist";
             exit(1);
         }
     }
