@@ -77,7 +77,8 @@ void handle_valid_datagram(BftDatagram &datagram, const std::string &dir) {
     if ((datagram.get_flags() & Flags::SYN) == Flags::SYN) {
         std::string filename = datagram.get_payload_as_string();
         Logger::info("Receiving file '" + filename + "'");
-        fileWriter = std::make_unique<FileWriter>(std::filesystem::path(dir) / filename);
+        std::string file_path = (std::filesystem::path(dir) / filename).string();
+        fileWriter = std::make_unique<FileWriter>(file_path);
     } else if ((datagram.get_flags() & Flags::ABR) == Flags::ABR) {
         Logger::warn("Got ABR, deleting '" + fileWriter->file_path + "'");
         fileWriter->abort();
