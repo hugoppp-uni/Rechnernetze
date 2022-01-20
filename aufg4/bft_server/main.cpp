@@ -57,12 +57,9 @@ int main(int argc, char **args) {
         Flags response_flags;
 
         if (received_datagram.check_integrity()) {
-            Logger::debug("Packet ok. Handle it...");
             handle_valid_datagram(received_datagram, options.directory);
-            Logger::debug("Handling done. Sending ACK.");
             response_flags = Flags::ACK;
         } else {
-            Logger::debug("Packet not ok. Sending ERR");
             response_flags = Flags::ERR;
         }
 
@@ -82,10 +79,13 @@ void handle_valid_datagram(BftDatagram &datagram, const std::string &dir) {
     } else if ((datagram.get_flags() & Flags::ABR) == Flags::ABR) {
         Logger::warn("Got ABR, deleting '" + fileWriter->file_path + "'");
         fileWriter->abort();
-    } else {
+    } else if ((datagram.get_flags() & Flags::FIN) == Flags::FIN) {
+        Logger::warn("Upload of '" + fileWriter->file_path + "'complete");
+        fileWriter = nullptr;
+    } else if (datagram.get_flags() == Flags::None) {
         const std::vector<char> &payload = datagram.get_payload();
         fileWriter->writeBytes(payload);
-        Logger::debug(
+        Logger::info(
             "Wrote " + std::to_string(payload.size()) + "/" + std::to_string(fileWriter->get_bytes_written()) +
             " bytes to '" + fileWriter->file_path + "'");
     }

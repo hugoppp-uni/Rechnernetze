@@ -74,7 +74,6 @@ void send_datagram(const BftDatagram &datagram, sockaddr_in &server_addr) {
         BftDatagram response = BftDatagram::receive(sock_fd, server_addr);
 
         if (response.check_integrity() && (response.get_flags() & Flags::ACK) == Flags::ACK) { // TODO: also check SQN
-            Logger::debug("Received ACK");
             // TODO: Increase SQN
             success = true;
         } else if (timeout) { // TODO: check timeout correctly
