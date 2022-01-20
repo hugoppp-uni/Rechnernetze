@@ -11,7 +11,7 @@
 
 using PayloadArray = std::array<char, MAX_PAYLOAD_SIZE>;
 
-#pragma pack(1)
+#pragma pack(push, 1)
 class BftDatagram {
 public:
 
@@ -46,5 +46,6 @@ private:
 
     [[nodiscard]] unsigned int calc_checksum();
 };
+#pragma pack(pop)
 
 static_assert(sizeof(BftDatagram) == MAX_DATAGRAM_SIZE);
