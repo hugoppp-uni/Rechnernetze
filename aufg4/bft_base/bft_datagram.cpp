@@ -55,13 +55,13 @@ BftDatagram BftDatagram::receive(int fd, sockaddr_in &client_addr) {
     }
 
 
-    Logger::debug("˄ " + datagram.to_string());
+    Logger::debug("˅ " + datagram.to_string());
     return datagram;
 }
 
 int BftDatagram::send(int sockfd, const sockaddr_in &client_addr) const {
 
-    Logger::debug("˅ " + to_string());
+    Logger::debug("˄ " + to_string());
     int bytes_send = (int) sendto(
         sockfd,
         (void *) this,
