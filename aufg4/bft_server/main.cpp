@@ -78,8 +78,13 @@ void handle_valid_datagram(BftDatagram &datagram) {
         Logger::info("Receiving file '" + filename + "'");
         fileWriter = std::make_unique<FileWriter>(filename);
     } else if ((datagram.get_flags() & Flags::ABR) == Flags::ABR) {
-        Logger::warn("Got ABR, deleting '" + fileWriter->file_name + "'");
+        Logger::warn("Got ABR, deleting '" + fileWriter->file_path + "'");
+        fileWriter->abort();
     } else {
-        fileWriter->writeBytes(datagram.get_payload());
+        const std::vector<char> &payload = datagram.get_payload();
+        fileWriter->writeBytes(payload);
+        Logger::debug(
+            "Wrote " + std::to_string(payload.size()) + "/" + std::to_string(fileWriter->get_bytes_written()) +
+            " bytes to '" + fileWriter->file_path + "'");
     }
 }

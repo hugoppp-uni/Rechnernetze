@@ -1,14 +1,22 @@
-
 #pragma once
 #include <string>
 #include <vector>
+#include <fstream>
 
 
 class FileWriter {
 public:
-    FileWriter(std::string fileName);
+    explicit FileWriter(std::string fileName);
+
+    virtual ~FileWriter();
+
     void writeBytes(const std::vector<char>& data);
-    const std::string file_name;
+    void abort();
+    const std::string file_path;
+    unsigned long get_bytes_written() const { return bytes_written; }
+private:
+    std::ofstream file_stream;
+    unsigned long bytes_written{0};
 
 
 };
