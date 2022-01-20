@@ -1,5 +1,6 @@
 #include <cxxopts.hpp>
 #include <iostream>
+#include <filesystem>
 
 class Options {
 public:
@@ -34,8 +35,9 @@ public:
 private:
 
     void validate_and_exit_if_needed(const cxxopts::ParseResult &result) const {
-        if (false) {
-            exit(1);
+        const std::filesystem::path &dir = std::filesystem::path(directory);
+        if (!exists(dir)) {
+            create_directories(dir);
         }
     }
 
