@@ -17,7 +17,9 @@ public:
 
     BftDatagram() : checksum(0), payload_size(0), flags(Flags::None) {};
     explicit BftDatagram(Flags flags);
-    BftDatagram(Flags flags, std::vector<char> data);
+    BftDatagram(Flags flags,
+                char *data_begin,
+                char *data_end);
     BftDatagram(Flags flags, const std::string &data);
 
     bool check_integrity();

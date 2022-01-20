@@ -42,13 +42,16 @@ int main(int argc, char **args) {
     BftDatagram syn_datagram(Flags::SYN, std::filesystem::path(options.file_path).filename());
     send_datagram(syn_datagram, server_addr);
 
-    std::vector<char> send_data((size_t) MAX_PAYLOAD_SIZE);
+    std::array<char, MAX_PAYLOAD_SIZE> send_data = {};
     std::ifstream file{options.file_path, std::ios_base::in | std::ios::binary};
-    while(file.read(send_data.data(), send_data.size())) {
-        send_data.resize(file.gcount());
-        BftDatagram data_datagram = BftDatagram(Flags::None, send_data);
+    while (true) {
+        file.read(send_data.data(), send_data.size());
+        long bytes_read = file.gcount();
+        if (bytes_read <= 0)
+            break;
+
+        BftDatagram data_datagram = BftDatagram(Flags::None, send_data.begin(), send_data.begin() + bytes_read);
         send_datagram(data_datagram, server_addr);
-        send_data.resize(MAX_PAYLOAD_SIZE);
     }
 
     send_datagram(BftDatagram(Flags::FIN), server_addr);

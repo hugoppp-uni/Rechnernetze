@@ -1,6 +1,8 @@
 #include <vector>
 #include "bft_datagram.hpp"
 #include "flags.hpp"
+#include <chrono>
+#include <thread>
 
 unsigned int BftDatagram::calc_checksum() {
     //we don't want to include the checksum field itself
@@ -15,9 +17,11 @@ std::string BftDatagram::checksum_as_string() const {
     return stream.str();
 }
 
-BftDatagram::BftDatagram(Flags flags, std::vector<char> data)
-    : flags(flags), payload_size(data.size()) {
-    std::copy(data.begin(), data.end(), payload.begin());
+BftDatagram::BftDatagram(Flags flags,
+                         char *data_begin,
+                         char *data_end)
+    : flags(flags), payload_size(data_end - data_begin) {
+    std::copy(data_begin, data_end, payload.begin());
     checksum = calc_checksum();
 }
 
@@ -57,6 +61,7 @@ BftDatagram BftDatagram::receive(int fd, sockaddr_in &client_addr) {
 
     Logger::debug("˅ " + datagram.to_string());
     Logger::data("\n" + datagram.get_payload_as_string());
+    std::this_thread::sleep_for(std::chrono::milliseconds (1));
     return datagram;
 }
 
@@ -72,6 +77,7 @@ int BftDatagram::send(int sockfd, const sockaddr_in &client_addr) const {
         sizeof client_addr);
 
     Logger::data("\n" + get_payload_as_string());
+    std::this_thread::sleep_for(std::chrono::milliseconds (1));
     return bytes_send;
 }
 
