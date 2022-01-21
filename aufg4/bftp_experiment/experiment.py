@@ -6,9 +6,13 @@ import subprocess
 from mininet.net import Mininet
 from mininet.link import TCLink
 from mininet.cli import CLI
+import os
 
 # Check your Ethernet interface with ifconfig and insert the name here
 ETH_INTERFACE = 'enp0s3'
+
+SERVER_BIN = os.environ.get('SERVER_BIN')
+CLIENT_BIN = os.environ.get('CLIENT_BIN')
 
 TESTFILES_DIRECTORY = "testfiles/"
 
@@ -43,12 +47,12 @@ net.start()
 
 print('Server IP:', server.IP())
 print('Client IP:', client.IP())
-server.cmd('chmod +x ../bft_server/bft_server')
-client.cmd('chmod +x ../bft_client/bft_client')
+server.cmd('chmod +x ' + SERVER_BIN)
+client.cmd('chmod +x ' + CLIENT_BIN)
 
 # prepare and run experiments
 # server.cmd('../bft_server/bft_server ' + str(SRV_PORT) + ' ' + SRV_DIR + ' > ' + SRV_LOG + ' &')
-server.cmd('../bft_server/bft_server ' + str(SRV_PORT) + ' ' + SRV_DIR + ' &')
+server.cmd(SERVER_BIN + ' ' + str(SRV_PORT) + ' ' + SRV_DIR + ' &')
 client.cmd(f'tshark -i {ETH_INTERFACE} -f udp -w {TSK_OFILE} &')
 
 # wait for a bit to make sure that tshark captures the very first datagram
@@ -60,10 +64,7 @@ for file in os.listdir(TESTFILES_DIRECTORY):
     srv_file = os.path.join(SRV_DIR, file)
     print('%-30s' % testfile, end='')
 
-    # ret = client.cmd('../bft_client/bft_client -r ' + str(CLT_RTO) + ' ', server.IP(), ' '
-    #            + str(SRV_PORT) + ' ' + testfile + ' >> ' + CLT_LOG)
-    client.cmd('../bft_client/bft_client -r ' + str(CLT_RTO) + ' ', server.IP(), ' '
-               + str(SRV_PORT) + ' ' + testfile)
+    client.cmd(f'{CLIENT_BIN} -r {str(CLT_RTO)} {str(server.IP())} {str(SRV_PORT)} {testfile}')
 
     diffoutput = subprocess.getoutput('diff -N ' + testfile + ' ' + srv_file)
     if diffoutput != "":
