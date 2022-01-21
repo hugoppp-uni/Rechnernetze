@@ -18,6 +18,8 @@ void send_datagram(const BftDatagram &datagram, sockaddr_in &server_addr, unsign
 int sock_fd;
 bool currSQN = false;
 
+unsigned int nRetransmissions;
+
 int main(int argc, char **args) {
     Options options{argc, args};
 
@@ -40,6 +42,8 @@ int main(int argc, char **args) {
 
     Logger::info("Uploading '" + options.file_path + "' to server " + options.server_ip);
     unsigned int timeout_sec = options.retransmission_timeout_ms / 1000;
+    nRetransmissions = 0;
+
     BftDatagram syn_datagram(Flags::SYN , std::filesystem::path(options.file_path).filename(), currSQN);
     send_datagram(syn_datagram, server_addr, timeout_sec);
 
@@ -61,6 +65,9 @@ int main(int argc, char **args) {
 
     file.close();
 
+    Logger::info("Finished sending file to server.");
+    Logger::debug("Number of retransmissions: " + std::to_string(nRetransmissions));
+
     close(sock_fd); /* close the socket */
     return 0;
 }
@@ -80,6 +87,7 @@ void send_datagram(const BftDatagram &datagram, sockaddr_in &server_addr, unsign
             int bytes_recvd = BftDatagram::receive(sock_fd, server_addr, response, recv_timeout_sec);
             if (bytes_recvd < 0 && errno == EAGAIN) { // Timeout occurred -> try again
                 Logger::debug("Timeout occurred. Retransmit packet...");
+                nRetransmissions++;
             } else if (bytes_recvd < 0) { // Exception occurred -> exit program
                 perror("error during receive");
                 exit(EXIT_FAILURE);

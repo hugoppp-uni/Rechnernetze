@@ -16,6 +16,9 @@
 int sock_fd;
 std::unique_ptr<FileWriter> fileWriter;
 
+std::chrono::time_point<std::chrono::system_clock> fileTransferStartTime;
+unsigned int nDuplicates;
+
 bool handle_valid_datagram(BftDatagram &datagram, const std::string &dir);
 
 void send_without_payload(Flags flags, const sockaddr_in &client_addr, bool currentSQN);
@@ -57,13 +60,18 @@ int main(int argc, char **args) {
 
     sockaddr_in client_addr{0};
 
+    nDuplicates = 0;
     bool currentSQN = false;
     while (true) {
         BftDatagram received_datagram;
         BftDatagram::receive(sock_fd, client_addr, received_datagram);
 
-        if (!received_datagram.check_integrity() || received_datagram.get_SQN() != currentSQN) {
+        if (!received_datagram.check_integrity() && received_datagram.get_SQN() == currentSQN) { // Packet bit-error
             send_without_payload(Flags::AGN, client_addr, currentSQN);
+            continue;
+        } else if(received_datagram.get_SQN() != currentSQN) { // Received duplicate
+            nDuplicates++;
+            send_without_payload(Flags::AGN, client_addr, currentSQN); // TODO: In case of a duplicate also increase SQN???
             continue;
         }
 
@@ -105,11 +113,16 @@ bool handle_valid_datagram(BftDatagram &datagram, const std::string &dir) {
         }
 
         fileWriter = std::make_unique<FileWriter>(filepath.string());
+        fileTransferStartTime = std::chrono::system_clock::now();
     } else if ((datagram.get_flags() & Flags::ABR) == Flags::ABR) {
         Logger::warn("Got ABR, deleting '" + fileWriter->file_path + "'");
         fileWriter->abort();
     } else if ((datagram.get_flags() & Flags::FIN) == Flags::FIN) {
-        Logger::warn("Upload of '" + fileWriter->file_path + "'complete");
+        Logger::warn("Upload of '" + fileWriter->file_path + "' complete.");
+        std::chrono::time_point<std::chrono::system_clock> endTime = std::chrono::system_clock::now();
+        int elapsed = (int) std::chrono::duration_cast<std::chrono::milliseconds>(endTime - fileTransferStartTime).count();
+        Logger::debug("Total duration of file transfer: " + std::to_string(elapsed) + " milliseconds.");
+        Logger::debug("Number of duplicates: " + std::to_string(nDuplicates));
         fileWriter = nullptr;
     } else if ((datagram.get_flags() & (~Flags::SQN)) == Flags::None) {
         const std::vector<char> &payload = datagram.get_payload();
