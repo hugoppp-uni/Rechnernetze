@@ -21,9 +21,10 @@ public:
     BftDatagram(Flags flags, const std::string &data, bool sqn);
 
     bool check_integrity();
-    int send(int sockfd, const sockaddr_in &client_addr) const;
+    [[nodiscard]] int send(int sockfd, const sockaddr_in &client_addr) const;
 
-    static BftDatagram receive(int fd, sockaddr_in &client_addr);
+    static int receive(int fd, sockaddr_in &client_addr, BftDatagram &response);
+    static int receive(int fd, sockaddr_in &client_addr, BftDatagram &response, unsigned int timeout_sec);
 
     [[nodiscard]] std::string to_string() const;
 
@@ -39,6 +40,7 @@ public:
     [[nodiscard]] int size() const {
         return payload_size + (int) HEADER_SIZE;
     }
+
 private:
     unsigned int checksum;
     unsigned short payload_size;

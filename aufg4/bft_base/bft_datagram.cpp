@@ -3,6 +3,7 @@
 #include "flags.hpp"
 #include <chrono>
 #include <thread>
+#include <cstring>
 
 unsigned int BftDatagram::calc_checksum() {
     //we don't want to include the checksum field itself
@@ -41,16 +42,16 @@ BftDatagram::BftDatagram(Flags flags, const std::string &data, bool sqn)
 }
 
 bool BftDatagram::check_integrity() {
-    return calc_checksum() == checksum && size() <= MAX_DATAGRAM_SIZE; }
+    return calc_checksum() == checksum && size() <= MAX_DATAGRAM_SIZE;
+}
 
-BftDatagram BftDatagram::receive(int fd, sockaddr_in &client_addr) {
+int BftDatagram::receive(int fd, sockaddr_in &client_addr, BftDatagram &response) {
 
-    BftDatagram datagram;
     socklen_t len = sizeof client_addr;
 
     int bytes_recvd = (int) recvfrom(
         fd,
-        (void *) &datagram,
+        (void *) &response,
         MAX_DATAGRAM_SIZE,
         MSG_WAITALL,
         (struct sockaddr *) &client_addr,
@@ -61,27 +62,49 @@ BftDatagram BftDatagram::receive(int fd, sockaddr_in &client_addr) {
         exit(EXIT_FAILURE);
     }
 
-
-    Logger::debug("˅ " + datagram.to_string());
-    Logger::data("\n" + datagram.get_payload_as_string());
+    Logger::debug("˅ " + response.to_string());
+    Logger::data("\n" + response.get_payload_as_string());
     std::this_thread::sleep_for(std::chrono::milliseconds (1));
-    return datagram;
+    return bytes_recvd;
+}
+
+int BftDatagram::receive(int fd, sockaddr_in &client_addr, BftDatagram &response, unsigned int timeout_sec) {
+
+    fd_set readfds;
+    FD_ZERO(&readfds);
+    FD_SET(fd, &readfds);
+
+    struct timeval tv{
+            .tv_sec = (time_t) timeout_sec,
+            .tv_usec = 0
+    };
+    int success = select(fd+1, &readfds, nullptr, nullptr, &tv);
+    if(success < 0) {
+        perror("on select");
+        exit(EXIT_FAILURE);
+    } else if (FD_ISSET(fd, &readfds)) {
+        return receive(fd, client_addr, response);
+    } else {
+        // the socket timed out
+        errno = EAGAIN;
+        return -1;
+    }
+
 }
 
 int BftDatagram::send(int sockfd, const sockaddr_in &client_addr) const {
-
     Logger::debug("˄ " + to_string());
-    int bytes_send = (int) sendto(
-        sockfd,
-        (void *) this,
-        size(),
-        MSG_CONFIRM,
-        (struct sockaddr *) &client_addr,
-        sizeof client_addr);
+    int bytes_sent = (int) sendto(
+            sockfd,
+            (void *) this,
+            size(),
+            MSG_CONFIRM,
+            (struct sockaddr *) &client_addr,
+            sizeof client_addr);
 
     Logger::data("\n" + get_payload_as_string());
-    std::this_thread::sleep_for(std::chrono::milliseconds (1));
-    return bytes_send;
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    return bytes_sent;
 }
 
 std::string BftDatagram::to_string() const {
@@ -91,4 +114,3 @@ std::string BftDatagram::to_string() const {
         ", payload size: " + std::to_string(payload_size)
         + "'";
 }
-

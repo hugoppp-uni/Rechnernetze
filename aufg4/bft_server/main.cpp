@@ -59,7 +59,8 @@ int main(int argc, char **args) {
 
     bool currentSQN = false;
     while (true) {
-        BftDatagram received_datagram = BftDatagram::receive(sock_fd, client_addr);
+        BftDatagram received_datagram;
+        BftDatagram::receive(sock_fd, client_addr, received_datagram);
 
         if (!received_datagram.check_integrity() || received_datagram.get_SQN() != currentSQN) {
             send_without_payload(Flags::AGN, client_addr, currentSQN);
@@ -76,7 +77,6 @@ int main(int argc, char **args) {
         } else {
             send_without_payload(Flags::ABR, client_addr, currentSQN);
         }
-
 
     }
 }
