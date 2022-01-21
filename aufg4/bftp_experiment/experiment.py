@@ -21,7 +21,7 @@ SRV_DIR = "storage/"
 SRV_LOG = "logs/server.log"
 
 CLT_LOG = "logs/client.log"
-CLT_RTO = 2000
+CLT_RTO = 500
 TSK_OFILE = "logs/client.pcap"
 
 # cleanup files (from previous run)
@@ -52,7 +52,7 @@ client.cmd('chmod +x ' + CLIENT_BIN)
 
 # prepare and run experiments
 # server.cmd('../bft_server/bft_server ' + str(SRV_PORT) + ' ' + SRV_DIR + ' > ' + SRV_LOG + ' &')
-server.cmd(SERVER_BIN + ' ' + str(SRV_PORT) + ' ' + SRV_DIR + ' &')
+server.cmd(SERVER_BIN + ' ' + str(SRV_PORT) + ' ' + SRV_DIR + ' &> ' + SRV_LOG + ' &')
 client.cmd(f'tshark -i {ETH_INTERFACE} -f udp -w {TSK_OFILE} &')
 
 # wait for a bit to make sure that tshark captures the very first datagram
@@ -64,7 +64,7 @@ for file in os.listdir(TESTFILES_DIRECTORY):
     srv_file = os.path.join(SRV_DIR, file)
     print('%-30s' % testfile, end='')
 
-    client.cmd(f'{CLIENT_BIN} -r {str(CLT_RTO)} {str(server.IP())} {str(SRV_PORT)} {testfile}')
+    client.cmd(f'{CLIENT_BIN} -r {str(CLT_RTO)} {str(server.IP())} {str(SRV_PORT)} {testfile} &> {CLT_LOG}')
 
     diffoutput = subprocess.getoutput('diff -N ' + testfile + ' ' + srv_file)
     if diffoutput != "":
