@@ -76,7 +76,8 @@ int main(int argc, char **args) {
             continue;
         } else if (received_datagram.get_SQN() != currentSQN) { // Received duplicate
             nDuplicates++;
-            send_without_payload(Flags::AGN, client_addr, currentSQN); // TODO: In case of a duplicate also increase SQN???
+            send_without_payload(Flags::AGN, client_addr,
+                                 currentSQN); // TODO: In case of a duplicate also increase SQN???
             continue;
         }
 
@@ -129,11 +130,12 @@ bool handle_valid_datagram(BftDatagram &datagram, const std::string &dir) {
         Logger::warn("Got ABR, deleting '" + fileWriter->file_path + "'");
         fileWriter->abort();
     } else if ((datagram.get_flags() & Flags::FIN) == Flags::FIN) {
-        Logger::info("Upload of '" + fileWriter->file_path + "' complete.");
         std::chrono::time_point<std::chrono::system_clock> endTime = std::chrono::system_clock::now();
         int elapsed = (int) std::chrono::duration_cast<std::chrono::milliseconds>(
             endTime - fileTransferStartTime).count();
-        Logger::debug("Total duration of file transfer: " + std::to_string(elapsed) + " milliseconds.");
+        fileWriter->log_bytes_written();
+        Logger::info(
+            "Upload of '" + fileWriter->file_path + "' completed in " + std::to_string(elapsed) + " milliseconds.");
         Logger::debug("Number of duplicates: " + std::to_string(nDuplicates));
         fileWriter = nullptr;
     } else if ((datagram.get_flags() & (~Flags::SQN)) == Flags::None) {
