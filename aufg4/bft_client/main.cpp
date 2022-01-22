@@ -15,6 +15,8 @@
 
 void send_datagram(const BftDatagram &datagram, sockaddr_in &server_addr, unsigned int recv_timeout_sec);
 
+BftDatagram send_and_receive_response(const BftDatagram &datagram, sockaddr_in &server_addr, unsigned int recv_timeout_sec);
+
 int sock_fd;
 bool currSQN = false;
 
@@ -76,29 +78,7 @@ int main(int argc, char **args) {
 void send_datagram(const BftDatagram &datagram, sockaddr_in &server_addr, unsigned int recv_timeout_sec) {
 
     while (true) {
-        BftDatagram response;
-
-        while (true) {
-
-            int bytes_sent = datagram.send(sock_fd, server_addr);
-            if (bytes_sent < 0) { // Exception occurred -> exit program
-                perror("error during send");
-                exit(EXIT_FAILURE);
-            }
-
-            int bytes_recvd = BftDatagram::receive(sock_fd, server_addr, response, recv_timeout_sec);
-            if (bytes_recvd > 0) {
-                break;
-            }
-            if (errno == EAGAIN) { // Timeout occurred -> try again
-                Logger::warn("Timeout occurred. Retransmitting packet...");
-                nRetransmissions++;
-            } else {
-                perror("error during receive");
-                exit(EXIT_FAILURE);
-            }
-
-        }
+        BftDatagram response = send_and_receive_response(datagram, server_addr, recv_timeout_sec);
 
         if (!response.check_integrity()) {
             Logger::warn("Response seems to be corrupt. Retransmitting packet...");
@@ -122,6 +102,33 @@ void send_datagram(const BftDatagram &datagram, sockaddr_in &server_addr, unsign
             Logger::warn("Server sent unexpected flags: '" + flags_to_str(response.get_flags())
                          + "' Retransmitting packet...");
         }
+    }
+}
+
+BftDatagram send_and_receive_response(const BftDatagram &datagram, sockaddr_in &server_addr, unsigned int recv_timeout_sec) {
+
+    while (true) {
+
+        int bytes_sent = datagram.send(sock_fd, server_addr);
+        if (bytes_sent < 0) { // Exception occurred -> exit program
+            perror("error during send");
+            exit(EXIT_FAILURE);
+        }
+
+        BftDatagram response;
+        int bytes_recvd = BftDatagram::receive(sock_fd, server_addr, response, recv_timeout_sec);
+        if (bytes_recvd > 0) {
+            return response;
+        }
+
+        if (errno == EAGAIN) { // Timeout occurred -> try again
+            Logger::warn("Timeout occurred. Retransmitting packet...");
+            nRetransmissions++;
+        } else {
+            perror("error during receive");
+            exit(EXIT_FAILURE);
+        }
+
     }
 }
 
