@@ -24,7 +24,6 @@ public:
     [[nodiscard]] int send(int sockfd, const sockaddr_in &client_addr) const;
 
     static int receive(int fd, sockaddr_in &client_addr, BftDatagram &response);
-    static int receive(int fd, sockaddr_in &client_addr, BftDatagram &response, unsigned int timeout_sec);
 
     [[nodiscard]] std::string to_string() const;
 

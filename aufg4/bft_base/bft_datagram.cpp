@@ -57,39 +57,19 @@ int BftDatagram::receive(int fd, sockaddr_in &client_addr, BftDatagram &response
         (struct sockaddr *) &client_addr,
         &len);
 
-    if (bytes_recvd < 0) {
-        perror("Error during receive");
+    if(bytes_recvd < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+        errno = EAGAIN;
+        return -1;
+    } else if (bytes_recvd < 0) {
+        perror("on select");
         exit(EXIT_FAILURE);
     }
 
     Logger::debug("˅ " + response.to_string());
     Logger::data("\n" + response.get_payload_as_string());
     std::this_thread::sleep_for(std::chrono::milliseconds (1));
+
     return bytes_recvd;
-}
-
-int BftDatagram::receive(int fd, sockaddr_in &client_addr, BftDatagram &response, unsigned int timeout_sec) {
-
-    fd_set readfds;
-    FD_ZERO(&readfds);
-    FD_SET(fd, &readfds);
-
-    struct timeval tv{
-            .tv_sec = (time_t) timeout_sec,
-            .tv_usec = 0
-    };
-    int success = select(fd+1, &readfds, nullptr, nullptr, &tv);
-    if(success < 0) {
-        perror("on select");
-        exit(EXIT_FAILURE);
-    } else if (FD_ISSET(fd, &readfds)) {
-        return receive(fd, client_addr, response);
-    } else {
-        // the socket timed out
-        errno = EAGAIN;
-        return -1;
-    }
-
 }
 
 int BftDatagram::send(int sockfd, const sockaddr_in &client_addr) const {

@@ -13,7 +13,7 @@
 #include "logger.hpp"
 #include "flags.hpp"
 
-void send_datagram(const BftDatagram &datagram, sockaddr_in &server_addr, unsigned int recv_timeout_sec);
+void send_datagram(const BftDatagram &datagram, sockaddr_in &server_addr);
 
 int sock_fd;
 bool currSQN = false;
@@ -33,6 +33,14 @@ int main(int argc, char **args) {
         exit(EXIT_FAILURE);
     }
 
+    Logger::debug("Setting retransmission timeout to " + std::to_string(options.retransmission_timeout_ms) + " ms.");
+    int timeout_sec = options.retransmission_timeout_ms / 1000;
+    struct timeval tv{
+            .tv_sec = (time_t) timeout_sec,
+            .tv_usec = (time_t) ((options.retransmission_timeout_ms) % (timeout_sec * 1000)) * 1000
+    };
+    setsockopt(sock_fd, SOL_SOCKET, SO_RCVTIMEO, (const char *) &tv, sizeof tv);
+
     struct sockaddr_in server_addr{
             .sin_family = AF_INET,
             .sin_port = htons(options.server_port),
@@ -41,15 +49,13 @@ int main(int argc, char **args) {
 
 
     Logger::info("Uploading '" + options.file_path + "' to server " + options.server_ip);
-    unsigned int timeout_sec = options.retransmission_timeout_ms / 1000;
     nRetransmissions = 0;
 
     BftDatagram syn_datagram(Flags::SYN , std::filesystem::path(options.file_path).filename(), currSQN);
-    send_datagram(syn_datagram, server_addr, timeout_sec);
+    send_datagram(syn_datagram, server_addr);
 
     std::array<char, MAX_PAYLOAD_SIZE> send_data = {};
     std::ifstream file{options.file_path, std::ios_base::in | std::ios::binary};
-
     while (true) {
         file.read(send_data.data(), send_data.size());
         long bytes_read = file.gcount();
@@ -58,10 +64,10 @@ int main(int argc, char **args) {
 
         BftDatagram data_datagram = BftDatagram(Flags::None, send_data.begin(),
                                                 send_data.begin() + bytes_read, currSQN);
-        send_datagram(data_datagram, server_addr, timeout_sec);
+        send_datagram(data_datagram, server_addr);
     }
 
-    send_datagram(BftDatagram(Flags::FIN, currSQN), server_addr, timeout_sec);
+    send_datagram(BftDatagram(Flags::FIN, currSQN), server_addr);
 
     file.close();
 
@@ -73,7 +79,7 @@ int main(int argc, char **args) {
 }
 
 
-void send_datagram(const BftDatagram &datagram, sockaddr_in &server_addr, unsigned int recv_timeout_sec) {
+void send_datagram(const BftDatagram &datagram, sockaddr_in &server_addr) {
 
     while (true) {
         BftDatagram response;
@@ -84,7 +90,7 @@ void send_datagram(const BftDatagram &datagram, sockaddr_in &server_addr, unsign
                 perror("error during send");
                 exit(EXIT_FAILURE);
             }
-            int bytes_recvd = BftDatagram::receive(sock_fd, server_addr, response, recv_timeout_sec);
+            int bytes_recvd = BftDatagram::receive(sock_fd, server_addr, response);
             if (bytes_recvd < 0 && errno == EAGAIN) { // Timeout occurred -> try again
                 Logger::debug("Timeout occurred. Retransmit packet...");
                 nRetransmissions++;
