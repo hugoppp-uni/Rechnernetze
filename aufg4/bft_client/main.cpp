@@ -34,9 +34,9 @@ int main(int argc, char **args) {
     }
 
     struct sockaddr_in server_addr{
-            .sin_family = AF_INET,
-            .sin_port = htons(options.server_port),
-            .sin_addr = {inet_addr(options.server_ip.c_str())},
+        .sin_family = AF_INET,
+        .sin_port = htons(options.server_port),
+        .sin_addr = {inet_addr(options.server_ip.c_str())},
     };
 
 
@@ -44,7 +44,7 @@ int main(int argc, char **args) {
     unsigned int timeout_sec = options.retransmission_timeout_ms / 1000;
     nRetransmissions = 0;
 
-    BftDatagram syn_datagram(Flags::SYN , std::filesystem::path(options.file_path).filename(), currSQN);
+    BftDatagram syn_datagram(Flags::SYN, std::filesystem::path(options.file_path).filename(), currSQN);
     send_datagram(syn_datagram, server_addr, timeout_sec);
 
     std::array<char, MAX_PAYLOAD_SIZE> send_data = {};
@@ -79,32 +79,49 @@ void send_datagram(const BftDatagram &datagram, sockaddr_in &server_addr, unsign
         BftDatagram response;
 
         while (true) {
+
             int bytes_sent = datagram.send(sock_fd, server_addr);
             if (bytes_sent < 0) { // Exception occurred -> exit program
                 perror("error during send");
                 exit(EXIT_FAILURE);
             }
+
             int bytes_recvd = BftDatagram::receive(sock_fd, server_addr, response, recv_timeout_sec);
-            if (bytes_recvd < 0 && errno == EAGAIN) { // Timeout occurred -> try again
-                Logger::debug("Timeout occurred. Retransmit packet...");
-                nRetransmissions++;
-            } else if (bytes_recvd < 0) { // Exception occurred -> exit program
-                perror("error during receive");
-                exit(EXIT_FAILURE);
-            } else { // Packet was sent within timeout
+            if (bytes_recvd > 0) {
                 break;
             }
+            if (errno == EAGAIN) { // Timeout occurred -> try again
+                Logger::warn("Timeout occurred. Retransmitting packet...");
+                nRetransmissions++;
+            } else {
+                perror("error during receive");
+                exit(EXIT_FAILURE);
+            }
+
         }
 
-        if (response.check_integrity()
-            && (response.get_flags() & Flags::ACK) == Flags::ACK
-            && (response.get_SQN() == currSQN)
-                ) {
+        if (!response.check_integrity()) {
+            Logger::warn("Response seems to be corrupt. Retransmitting packet...");
+            continue;
+        }
+        if (response.get_SQN() != currSQN) {
+            Logger::warn("Response SQN doesn't match. Retransmitting packet...");
+            continue;
+        }
+
+        if ((response.get_flags() & Flags::ACK) == Flags::ACK) {
             currSQN ^= true;
             return;
+        } else if ((response.get_flags() & Flags::ABR) == Flags::ABR) {
+            Logger::error("Server sent ABR, aborting upload");
+            //todo clean up
+            exit(EXIT_FAILURE);
+        } else if ((response.get_flags() & Flags::AGN) == Flags::AGN) {
+            Logger::warn("Server sent AGN, Retransmitting packet...");
+        } else {
+            Logger::warn("Server sent unexpected flags: '" + flags_to_str(response.get_flags())
+                         + "' Retransmitting packet...");
         }
-
-        Logger::debug("Packet seems to be corrupt, resending it");
     }
 }
 
