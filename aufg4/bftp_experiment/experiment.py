@@ -7,9 +7,12 @@ from mininet.net import Mininet
 from mininet.link import TCLink
 from mininet.cli import CLI
 import os
+import numpy as np
+import re
+import matplotlib.pyplot as plt
 
 # Check your Ethernet interface with ifconfig and insert the name here
-ETH_INTERFACE = 'enp0s3'
+ETH_INTERFACE = 's1-eth2'
 
 SERVER_BIN = os.environ.get('SERVER_BIN')
 CLIENT_BIN = os.environ.get('CLIENT_BIN')
@@ -20,9 +23,11 @@ SRV_PORT = 6000
 SRV_DIR = "storage/"
 SRV_LOG = "logs/server.log"
 
+CLT_RTO = 800
 CLT_LOG = "logs/client.log"
-CLT_RTO = 500
 TSK_OFILE = "logs/client.pcap"
+
+PLOT_DIR = "logs/"
 
 # cleanup files (from previous run)
 if os.path.exists(SRV_DIR):
@@ -33,6 +38,8 @@ if os.path.exists(CLT_LOG):
     os.remove(CLT_LOG)
 if os.path.exists(TSK_OFILE):
     os.remove(TSK_OFILE)
+if not os.path.exists(PLOT_DIR):
+    os.mkdir(PLOT_DIR)
 
 # steup and start mininet network
 net = Mininet(link=TCLink)
@@ -41,8 +48,10 @@ client = net.addHost('client')
 s1 = net.addSwitch('s1')
 c0 = net.addController('c0')
 
-net.addLink(server, s1, delay='4ms', jitter='1ms', loss=1)
-net.addLink(client, s1, delay='4ms', jitter='1ms', loss=1)
+# net.addLink(server, s1, delay='4ms', jitter='1ms', loss=1)
+# net.addLink(client, s1, delay='4ms', jitter='1ms', loss=1)
+net.addLink(server, s1, delay='5ms', jitter='1ms', loss=1)
+net.addLink(client, s1, delay='5ms', jitter='1ms', loss=1)
 net.start()
 
 print('Server IP:', server.IP())
@@ -51,26 +60,64 @@ server.cmd('chmod +x ' + SERVER_BIN)
 client.cmd('chmod +x ' + CLIENT_BIN)
 
 # prepare and run experiments
-# server.cmd('../bft_server/bft_server ' + str(SRV_PORT) + ' ' + SRV_DIR + ' > ' + SRV_LOG + ' &')
 server.cmd(SERVER_BIN + ' ' + str(SRV_PORT) + ' ' + SRV_DIR + ' &> ' + SRV_LOG + ' &')
 client.cmd(f'tshark -i {ETH_INTERFACE} -f udp -w {TSK_OFILE} &')
 
 # wait for a bit to make sure that tshark captures the very first datagram
-time.sleep(1)
+time.sleep(3)
 
+timeout_values = np.arange(500, 3100, 500)
+# rto = [3000]
+retransmissions = []
+duplicates = []
+durations = []
 # sequentially upload test files
 for file in os.listdir(TESTFILES_DIRECTORY):
     testfile = os.path.join(TESTFILES_DIRECTORY, file)
     srv_file = os.path.join(SRV_DIR, file)
-    print('%-30s' % testfile, end='')
 
-    client.cmd(f'{CLIENT_BIN} -r {str(CLT_RTO)} {str(server.IP())} {str(SRV_PORT)} {testfile} &> {CLT_LOG}')
+    for client_rto in timeout_values:
+        if os.path.exists(CLT_LOG):
+            os.remove(CLT_LOG)
+        print("Transfer " + testfile + " with RTO of " + str(client_rto) + " ms")
+        client.cmd(f'{CLIENT_BIN} -r {str(client_rto)} {str(server.IP())} {str(SRV_PORT)} {testfile} &> {CLT_LOG}')
+        time.sleep(1)
 
-    diffoutput = subprocess.getoutput('diff -N ' + testfile + ' ' + srv_file)
-    if diffoutput != "":
-        print(" => \033[31m\033[1m FAILED \033[0m")
-    else:
-        print(" => \033[32m\033[1m PASSED \033[0m")
+        print('%-30s' % testfile, end='')
+        diffoutput = subprocess.getoutput('diff -N ' + testfile + ' ' + srv_file)
+        if diffoutput != "":
+            print(" => \033[31m\033[1m FAILED \033[0m")
+        else:
+            print(" => \033[32m\033[1m PASSED \033[0m")
+        rtm = re.findall(r'\d+', client.cmd("awk '/retransmissions:/ {print $7}' ../bftp_experiment/logs/client.log"))[-1]
+        dps = re.findall(r'\d+', server.cmd("awk '/duplicates:/ {print $7}' ../bftp_experiment/logs/server.log"))[-1]
+        dur = re.findall(r'\d+', server.cmd("awk '/duration of file transfer:/ {print $9}' ../bftp_experiment/logs/server.log"))[-1]
+        print("Client retransmissions: " + rtm + ", Server duplicates: " + dps)
+        print("Duration: " + dur)
+        retransmissions.append(int(rtm))
+        duplicates.append(int(dps))
+        durations.append(int(dur))
+
+    plt.figure(figsize=(10, 5))
+    plt.suptitle('File transfer: ' + testfile)
+    plt.style.use('seaborn')
+    plt.subplot(1, 2, 1)
+    plt.title('Retransmissions and duplicates')
+    plt.plot(timeout_values, retransmissions, label='Retransmissions')
+    plt.plot(timeout_values, duplicates, label='Duplicates')
+    plt.xlabel('Retransmission timeout (RTO)')
+    plt.xlim(min(timeout_values), max(timeout_values))
+    plt.ylabel('Packets')
+    plt.yticks(np.arange(0, max(retransmissions + duplicates)+1, 1))
+    plt.legend()
+
+    plt.subplot(1, 2, 2)
+    plt.title('Duration of file transfer')
+    plt.plot(timeout_values, durations, label='Duration of file transfer')
+    plt.xlabel('Retransmission timeout (RTO)')
+    plt.xlim(min(timeout_values), max(timeout_values))
+    plt.ylabel('Time [ms]')
+    plt.savefig(f'plots/{file}.png')
 
 # wait for a bit to make sure that tshark records even the very last datagram
 time.sleep(1)
