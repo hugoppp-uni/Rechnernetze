@@ -15,7 +15,6 @@
 
 int sock_fd;
 std::unique_ptr<FileWriter> fileWriter;
-
 std::chrono::time_point<std::chrono::system_clock> fileTransferStartTime;
 unsigned int nDuplicates;
 
@@ -60,8 +59,8 @@ int main(int argc, char **args) {
 
     sockaddr_in client_addr{0};
 
-    nDuplicates = 0;
     bool currentSQN = false;
+    nDuplicates = 0;
     while (true) {
         BftDatagram received_datagram;
         BftDatagram::receive(sock_fd, client_addr, received_datagram);
@@ -81,7 +80,11 @@ int main(int argc, char **args) {
             if (bytes_sent <= 0)
                 Logger::error("error while sending response: " + std::string(strerror(errno)));
 
-            currentSQN ^= true;
+            if ((received_datagram.get_flags() & Flags::FIN) == Flags::FIN) {
+                currentSQN = false;
+            } else {
+                currentSQN ^= true;
+            }
         } else {
             send_without_payload(Flags::ABR, client_addr, currentSQN);
         }

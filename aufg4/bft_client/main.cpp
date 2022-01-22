@@ -43,9 +43,15 @@ int main(int argc, char **args) {
 
     Logger::debug("Setting retransmission timeout to " + std::to_string(options.retransmission_timeout_ms) + " ms.");
     int timeout_sec = options.retransmission_timeout_ms / 1000;
+    int timeout_usec;
+    if (timeout_sec == 0) {
+        timeout_usec = options.retransmission_timeout_ms * 1000;
+    } else {
+        timeout_usec = ( options.retransmission_timeout_ms % (timeout_sec*1000) ) * 1000;
+    }
     struct timeval tv{
             .tv_sec = (time_t) timeout_sec,
-            .tv_usec = (time_t) ((options.retransmission_timeout_ms) % (timeout_sec * 1000)) * 1000
+            .tv_usec = (time_t) timeout_usec
     };
     setsockopt(sock_fd, SOL_SOCKET, SO_RCVTIMEO, (const char *) &tv, sizeof tv);
 
