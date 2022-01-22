@@ -17,16 +17,20 @@ int sock_fd;
 std::unique_ptr<FileWriter> fileWriter;
 std::chrono::time_point<std::chrono::system_clock> fileTransferStartTime;
 unsigned int nDuplicates;
+sockaddr_in client_addr{0};
 
 bool handle_valid_datagram(BftDatagram &datagram, const std::string &dir);
 
 void send_without_payload(Flags flags, const sockaddr_in &client_addr, bool currentSQN);
 
 void signalHandler(int signum) {
-    Logger::debug("Interrupt signal " + std::to_string(signum) + " received.");
-    // TODO: Cleanup stuff ...
+    Logger::info("Server shutting down");
+    if (fileWriter) {
+        //special case: if the server gets terminated, the server sends an ABR with no SQN set (fire and forget)
+        send_without_payload(Flags::ABR, client_addr, false);
+    }
     close(sock_fd);
-    exit(signum);
+    exit(EXIT_SUCCESS);
 }
 
 
@@ -57,7 +61,6 @@ int main(int argc, char **args) {
         exit(EXIT_FAILURE);
     }
 
-    sockaddr_in client_addr{0};
 
     bool currentSQN = false;
     nDuplicates = 0;
@@ -68,7 +71,7 @@ int main(int argc, char **args) {
         if (!received_datagram.check_integrity() && received_datagram.get_SQN() == currentSQN) { // Packet bit-error
             send_without_payload(Flags::AGN, client_addr, currentSQN);
             continue;
-        } else if(received_datagram.get_SQN() != currentSQN) { // Received duplicate
+        } else if (received_datagram.get_SQN() != currentSQN) { // Received duplicate
             nDuplicates++;
             send_without_payload(Flags::AGN, client_addr, currentSQN); // TODO: In case of a duplicate also increase SQN???
             continue;
@@ -123,7 +126,8 @@ bool handle_valid_datagram(BftDatagram &datagram, const std::string &dir) {
     } else if ((datagram.get_flags() & Flags::FIN) == Flags::FIN) {
         Logger::warn("Upload of '" + fileWriter->file_path + "' complete.");
         std::chrono::time_point<std::chrono::system_clock> endTime = std::chrono::system_clock::now();
-        int elapsed = (int) std::chrono::duration_cast<std::chrono::milliseconds>(endTime - fileTransferStartTime).count();
+        int elapsed = (int) std::chrono::duration_cast<std::chrono::milliseconds>(
+            endTime - fileTransferStartTime).count();
         Logger::debug("Total duration of file transfer: " + std::to_string(elapsed) + " milliseconds.");
         Logger::debug("Number of duplicates: " + std::to_string(nDuplicates));
         fileWriter = nullptr;

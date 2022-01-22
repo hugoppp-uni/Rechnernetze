@@ -36,9 +36,9 @@ int main(int argc, char **args) {
     }
 
     struct sockaddr_in server_addr{
-            .sin_family = AF_INET,
-            .sin_port = htons(options.server_port),
-            .sin_addr = {inet_addr(options.server_ip.c_str())},
+        .sin_family = AF_INET,
+        .sin_port = htons(options.server_port),
+        .sin_addr = {inet_addr(options.server_ip.c_str())},
     };
 
     Logger::debug("Setting retransmission timeout to " + std::to_string(options.retransmission_timeout_ms) + " ms.");
@@ -47,18 +47,18 @@ int main(int argc, char **args) {
     if (timeout_sec == 0) {
         timeout_usec = options.retransmission_timeout_ms * 1000;
     } else {
-        timeout_usec = ( options.retransmission_timeout_ms % (timeout_sec*1000) ) * 1000;
+        timeout_usec = (options.retransmission_timeout_ms % (timeout_sec * 1000)) * 1000;
     }
     struct timeval tv{
-            .tv_sec = (time_t) timeout_sec,
-            .tv_usec = (time_t) timeout_usec
+        .tv_sec = (time_t) timeout_sec,
+        .tv_usec = (time_t) timeout_usec
     };
     setsockopt(sock_fd, SOL_SOCKET, SO_RCVTIMEO, (const char *) &tv, sizeof tv);
 
     Logger::info("Uploading '" + options.file_path + "' to server " + options.server_ip);
     nRetransmissions = 0;
 
-    BftDatagram syn_datagram(Flags::SYN , std::filesystem::path(options.file_path).filename(), currSQN);
+    BftDatagram syn_datagram(Flags::SYN, std::filesystem::path(options.file_path).filename(), currSQN);
     send_datagram(syn_datagram, server_addr);
 
     std::array<char, MAX_PAYLOAD_SIZE> send_data = {};
@@ -95,6 +95,11 @@ void send_datagram(const BftDatagram &datagram, sockaddr_in &server_addr) {
             Logger::warn("Response seems to be corrupt. Retransmitting packet...");
             continue;
         }
+        //special case: if the server gets terminated, the server sends an ABR with no SQN set
+        if ((response.get_flags() & Flags::ABR) == Flags::ABR && !response.get_SQN()) {
+            Logger::error("Server terminated, aborting upload");
+            exit(EXIT_FAILURE);
+        }
         if (response.get_SQN() != currSQN) {
             Logger::warn("Response SQN doesn't match. Retransmitting packet...");
             continue;
@@ -103,10 +108,6 @@ void send_datagram(const BftDatagram &datagram, sockaddr_in &server_addr) {
         if ((response.get_flags() & Flags::ACK) == Flags::ACK) {
             currSQN ^= true;
             return;
-        } else if ((response.get_flags() & Flags::ABR) == Flags::ABR) {
-            Logger::error("Server sent ABR, aborting upload");
-            //todo clean up
-            exit(EXIT_FAILURE);
         } else if ((response.get_flags() & Flags::AGN) == Flags::AGN) {
             Logger::warn("Server sent AGN, Retransmitting packet...");
         } else {
