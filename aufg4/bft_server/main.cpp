@@ -37,8 +37,11 @@ void signalHandler(int signum) {
 int main(int argc, char **args) {
     signal(SIGINT, signalHandler); // Cleanup when pressing CTRL+C
 
-    Logger::set_level(Logger::level::DATA);
     Options options{argc, args};
+    if (options.debug)
+        Logger::set_level(Logger::level::DEBUG);
+    else
+        Logger::set_level(Logger::level::INFO);
 
     if (options.debug) {
         Logger::info("BFT Server started in Debug mode");
@@ -105,17 +108,19 @@ void send_without_payload(Flags flags, const sockaddr_in &client_addr, bool curr
 /// \return false, if busy
 bool handle_valid_datagram(BftDatagram &datagram, const std::string &dir) {
     if ((datagram.get_flags() & Flags::SYN) == Flags::SYN) {
-        if (fileWriter)
+        if (fileWriter) {
+            Logger::warn("Busy, incoming connection denied");
             return false;
+        }
 
         std::string filename = datagram.get_payload_as_string();
 
         const std::filesystem::path &filepath = std::filesystem::path(dir) / filename;
         if (exists(filepath)) {
             std::filesystem::remove(filepath);
-            Logger::info("Replacing file '" + filename + "'");
+            Logger::info("Incoming connection, replacing file '" + filename + "'");
         } else {
-            Logger::info("Creating file '" + filename + "'");
+            Logger::info("Incoming connection, creating file '" + filename + "'");
         }
 
         fileWriter = std::make_unique<FileWriter>(filepath.string());
@@ -124,7 +129,7 @@ bool handle_valid_datagram(BftDatagram &datagram, const std::string &dir) {
         Logger::warn("Got ABR, deleting '" + fileWriter->file_path + "'");
         fileWriter->abort();
     } else if ((datagram.get_flags() & Flags::FIN) == Flags::FIN) {
-        Logger::warn("Upload of '" + fileWriter->file_path + "' complete.");
+        Logger::info("Upload of '" + fileWriter->file_path + "' complete.");
         std::chrono::time_point<std::chrono::system_clock> endTime = std::chrono::system_clock::now();
         int elapsed = (int) std::chrono::duration_cast<std::chrono::milliseconds>(
             endTime - fileTransferStartTime).count();
@@ -134,7 +139,7 @@ bool handle_valid_datagram(BftDatagram &datagram, const std::string &dir) {
     } else if ((datagram.get_flags() & (~Flags::SQN)) == Flags::None) {
         const std::vector<char> &payload = datagram.get_payload();
         fileWriter->writeBytes(payload);
-        Logger::info(
+        Logger::debug(
             "Wrote " + std::to_string(payload.size()) + "/" + std::to_string(fileWriter->get_bytes_written()) +
             " bytes to '" + fileWriter->file_path + "'");
     }

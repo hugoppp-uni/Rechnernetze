@@ -25,7 +25,10 @@ unsigned int nRetransmissions;
 int main(int argc, char **args) {
     Options options{argc, args};
 
-    Logger::set_level(Logger::level::DATA);
+    if (options.debug)
+        Logger::set_level(Logger::level::DEBUG);
+    else
+        Logger::set_level(Logger::level::INFO);
 
     /* create an Internet, datagram, socket using UDP */
     sock_fd = socket(AF_INET, SOCK_DGRAM, 0);

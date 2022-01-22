@@ -9,10 +9,10 @@ class Logger {
 
 public:
     enum class level {
-        DEBUG = 4,
-        ERR = 3,
-        WARN = 2,
-        INFO = 1,
+        ERR = 4,
+        WARN = 3,
+        INFO = 2,
+        DEBUG = 1,
         DATA = 0,
     };
 
