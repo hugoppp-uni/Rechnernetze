@@ -15,6 +15,8 @@
 
 void send_datagram(const BftDatagram &datagram, sockaddr_in &server_addr);
 
+BftDatagram send_and_receive_response(const BftDatagram &datagram, sockaddr_in &server_addr);
+
 int sock_fd;
 bool currSQN = false;
 
@@ -33,6 +35,12 @@ int main(int argc, char **args) {
         exit(EXIT_FAILURE);
     }
 
+    struct sockaddr_in server_addr{
+            .sin_family = AF_INET,
+            .sin_port = htons(options.server_port),
+            .sin_addr = {inet_addr(options.server_ip.c_str())},
+    };
+
     Logger::debug("Setting retransmission timeout to " + std::to_string(options.retransmission_timeout_ms) + " ms.");
     int timeout_sec = options.retransmission_timeout_ms / 1000;
     struct timeval tv{
@@ -40,13 +48,6 @@ int main(int argc, char **args) {
             .tv_usec = (time_t) ((options.retransmission_timeout_ms) % (timeout_sec * 1000)) * 1000
     };
     setsockopt(sock_fd, SOL_SOCKET, SO_RCVTIMEO, (const char *) &tv, sizeof tv);
-
-    struct sockaddr_in server_addr{
-            .sin_family = AF_INET,
-            .sin_port = htons(options.server_port),
-            .sin_addr = {inet_addr(options.server_ip.c_str())},
-    };
-
 
     Logger::info("Uploading '" + options.file_path + "' to server " + options.server_ip);
     nRetransmissions = 0;
@@ -82,35 +83,57 @@ int main(int argc, char **args) {
 void send_datagram(const BftDatagram &datagram, sockaddr_in &server_addr) {
 
     while (true) {
-        BftDatagram response;
+        BftDatagram response = send_and_receive_response(datagram, server_addr);
 
-        while (true) {
-            int bytes_sent = datagram.send(sock_fd, server_addr);
-            if (bytes_sent < 0) { // Exception occurred -> exit program
-                perror("error during send");
-                exit(EXIT_FAILURE);
-            }
-            int bytes_recvd = BftDatagram::receive(sock_fd, server_addr, response);
-            if (bytes_recvd < 0 && errno == EAGAIN) { // Timeout occurred -> try again
-                Logger::debug("Timeout occurred. Retransmit packet...");
-                nRetransmissions++;
-            } else if (bytes_recvd < 0) { // Exception occurred -> exit program
-                perror("error during receive");
-                exit(EXIT_FAILURE);
-            } else { // Packet was sent within timeout
-                break;
-            }
+        if (!response.check_integrity()) {
+            Logger::warn("Response seems to be corrupt. Retransmitting packet...");
+            continue;
+        }
+        if (response.get_SQN() != currSQN) {
+            Logger::warn("Response SQN doesn't match. Retransmitting packet...");
+            continue;
         }
 
-        if (response.check_integrity()
-            && (response.get_flags() & Flags::ACK) == Flags::ACK
-            && (response.get_SQN() == currSQN)
-                ) {
+        if ((response.get_flags() & Flags::ACK) == Flags::ACK) {
             currSQN ^= true;
             return;
+        } else if ((response.get_flags() & Flags::ABR) == Flags::ABR) {
+            Logger::error("Server sent ABR, aborting upload");
+            //todo clean up
+            exit(EXIT_FAILURE);
+        } else if ((response.get_flags() & Flags::AGN) == Flags::AGN) {
+            Logger::warn("Server sent AGN, Retransmitting packet...");
+        } else {
+            Logger::warn("Server sent unexpected flags: '" + flags_to_str(response.get_flags())
+                         + "' Retransmitting packet...");
+        }
+    }
+}
+
+BftDatagram send_and_receive_response(const BftDatagram &datagram, sockaddr_in &server_addr) {
+
+    while (true) {
+
+        int bytes_sent = datagram.send(sock_fd, server_addr);
+        if (bytes_sent < 0) { // Exception occurred -> exit program
+            perror("error during send");
+            exit(EXIT_FAILURE);
         }
 
-        Logger::debug("Packet seems to be corrupt, resending it");
+        BftDatagram response;
+        int bytes_recvd = BftDatagram::receive(sock_fd, server_addr, response);
+        if (bytes_recvd > 0) {
+            return response;
+        }
+
+        if (errno == EAGAIN) { // Timeout occurred -> try again
+            Logger::warn("Timeout occurred. Retransmitting packet...");
+            nRetransmissions++;
+        } else {
+            perror("error during receive");
+            exit(EXIT_FAILURE);
+        }
+
     }
 }
 

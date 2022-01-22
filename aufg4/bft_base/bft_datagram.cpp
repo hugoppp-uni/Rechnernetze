@@ -66,7 +66,7 @@ int BftDatagram::receive(int fd, sockaddr_in &client_addr, BftDatagram &response
     }
 
     Logger::debug("˅ " + response.to_string());
-    Logger::data("\n" + response.get_payload_as_string());
+    Logger::data("Payload:\n" + response.get_payload_as_string());
     std::this_thread::sleep_for(std::chrono::milliseconds (1));
 
     return bytes_recvd;
@@ -82,7 +82,7 @@ int BftDatagram::send(int sockfd, const sockaddr_in &client_addr) const {
             (struct sockaddr *) &client_addr,
             sizeof client_addr);
 
-    Logger::data("\n" + get_payload_as_string());
+    Logger::data("Payload:\n" + get_payload_as_string());
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
     return bytes_sent;
 }
