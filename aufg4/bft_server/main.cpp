@@ -12,22 +12,38 @@
 
 #include <iomanip>  // Includes ::std::hex
 #include <filesystem>
+#include <utility>
+
+struct ClientData {
+    FileWriter file_writer;
+    const std::chrono::time_point<std::chrono::system_clock> file_transfer_start_time;
+    const sockaddr_in address{};
+    unsigned int n_duplicates = 0;
+    bool current_SQN = SQN_START_VAL;
+
+    explicit ClientData(std::string file_path, sockaddr_in client_addr)
+        : file_writer(std::move(file_path)),
+          address(client_addr),
+          file_transfer_start_time(std::chrono::system_clock::now()) {}
+
+    void increment_SQN() {
+        current_SQN ^= true;
+    }
+};
 
 int sock_fd;
-std::unique_ptr<FileWriter> fileWriter;
-std::chrono::time_point<std::chrono::system_clock> fileTransferStartTime;
-unsigned int nDuplicates;
-sockaddr_in client_addr{0};
-bool currentSQN = SQN_START_VAL;
+std::unique_ptr<ClientData> current_client;
 
 void handle_valid_datagram(BftDatagram &datagram);
 
-bool handle_SYN(BftDatagram datagram, const std::string &dir);
+bool handle_SYN(BftDatagram datagram, const std::string &dir, sockaddr_in client_addr);
+
+void init_socket(unsigned short port);
 
 void signalHandler(int signum) {
     Logger::info("Server shutting down");
-    if (fileWriter) {
-        BftDatagram::ABR.send(sock_fd, client_addr);
+    if (current_client) {
+        BftDatagram::ABR.send(sock_fd, current_client->address);
     }
     close(sock_fd);
     exit(EXIT_SUCCESS);
@@ -51,9 +67,62 @@ int main(int argc, char **args) {
     Logger::info("Listening on port " + std::to_string(options.port));
     Logger::info("Incoming files will be saved into folder: " + options.directory);
 
+    init_socket(options.port);
+
+    while (true) {
+        BftDatagram received_datagram;
+        sockaddr_in sender_addr{};
+        BftDatagram::receive(sock_fd, sender_addr, received_datagram);
+
+        if (!received_datagram.check_integrity()) {
+            //request repeat of current packet
+            BftDatagram(Flags::AGN, current_client->current_SQN).send(sock_fd, sender_addr);
+            continue;
+        }
+
+        if (received_datagram.is_SYN()) {
+            if (handle_SYN(received_datagram, options.directory, sender_addr)) {
+                received_datagram.create_ACK().send(sock_fd, sender_addr);
+                current_client->increment_SQN();
+            } else {
+                BftDatagram::ABR.send(sock_fd, sender_addr);
+                //do not update SQN
+            }
+            continue;
+        }
+
+        if (received_datagram.is_ABR()) {
+            received_datagram.create_ACK().send(sock_fd, sender_addr);
+            if (current_client != nullptr && sender_addr.sin_addr.s_addr == current_client->address.sin_addr.s_addr) {
+                Logger::warn("Client aborted upload, deleting '" + current_client->file_writer.file_path + "'");
+                current_client->file_writer.abort();
+                current_client = nullptr;
+            }
+            continue;
+        }
+
+        if (current_client == nullptr || sender_addr.sin_addr.s_addr != current_client->address.sin_addr.s_addr) {
+            //got a datagram from a different address
+            BftDatagram::ABR.send(sock_fd, sender_addr);
+            continue;
+        }
+
+        // a regular datagram
+        if (received_datagram.get_SQN() != current_client->current_SQN) {
+            current_client->n_duplicates++; //todo ignore it or resend old ACK?
+        } else {
+            received_datagram.create_ACK().send(sock_fd, current_client->address);
+            current_client->increment_SQN();
+            handle_valid_datagram(received_datagram);
+        }
+    }
+}
+
+
+void init_socket(unsigned short port) {
     struct sockaddr_in server_addr{
         .sin_family = AF_INET,
-        .sin_port = htons(options.port),
+        .sin_port = htons(port),
         .sin_addr =  {htonl(INADDR_ANY)}
     };
 
@@ -63,51 +132,12 @@ int main(int argc, char **args) {
         perror("bind failed");
         exit(EXIT_FAILURE);
     }
-
-
-    nDuplicates = 0;
-    while (true) {
-        BftDatagram received_datagram;
-        BftDatagram::receive(sock_fd, client_addr, received_datagram);
-
-        if (!received_datagram.check_integrity()) {
-            //request repeat of current packet
-            BftDatagram(Flags::AGN, currentSQN).send(sock_fd, client_addr);
-            continue;
-        }
-
-        if (received_datagram.is_SYN()) {
-            if (handle_SYN(received_datagram, options.directory)) {
-                received_datagram.create_ACK().send(sock_fd, client_addr);
-                currentSQN = SQN_START_VAL ^ true;
-            } else {
-                BftDatagram::ABR.send(sock_fd, client_addr);
-                //do not update SQN
-            }
-        } else if (received_datagram.is_ABR()) {
-            if (!fileWriter)
-                continue;
-            Logger::warn("Got ABR, deleting '" + fileWriter->file_path + "'");
-            received_datagram.create_ACK().send(sock_fd, client_addr);
-            fileWriter->abort();
-            fileWriter = nullptr;
-        } else if (received_datagram.get_SQN() != currentSQN) {
-            nDuplicates++;
-            //todo ignore it or resend old ACK?
-//            BftDatagram(Flags::ACK, currentSQN).send(sock_fd, client_addr);
-            //do not update SQN
-        } else {
-            handle_valid_datagram(received_datagram);
-            received_datagram.create_ACK().send(sock_fd, client_addr);
-            currentSQN ^= true;
-        }
-    }
 }
 
 /// \return true, if connection established, else false
-bool handle_SYN(BftDatagram datagram, const std::string &dir) {
+bool handle_SYN(BftDatagram datagram, const std::string &dir, sockaddr_in client_addr) {
 
-    if (fileWriter) {
+    if (current_client) {
         Logger::warn("Busy, incoming connection denied");
         return false;
     }
@@ -122,8 +152,7 @@ bool handle_SYN(BftDatagram datagram, const std::string &dir) {
         Logger::info("Incoming connection, creating file '" + filename + "'");
     }
 
-    fileWriter = std::make_unique<FileWriter>(filepath.string());
-    fileTransferStartTime = std::chrono::system_clock::now();
+    current_client = std::make_unique<ClientData>(filepath.string(), client_addr);
     return true;
 }
 
@@ -131,18 +160,20 @@ void handle_valid_datagram(BftDatagram &datagram) {
     if ((datagram.get_flags() & Flags::FIN) == Flags::FIN) {
         std::chrono::time_point<std::chrono::system_clock> endTime = std::chrono::system_clock::now();
         int elapsed = (int) std::chrono::duration_cast<std::chrono::milliseconds>(
-            endTime - fileTransferStartTime).count();
-        fileWriter->log_bytes_written();
+            endTime - current_client->file_transfer_start_time).count();
+        current_client->file_writer.log_bytes_written();
         Logger::info(
-            "Upload of '" + fileWriter->file_path + "' completed in " + std::to_string(elapsed) + " milliseconds.");
-        Logger::debug("Number of duplicates: " + std::to_string(nDuplicates));
-        fileWriter = nullptr;
+            "Upload of '" + current_client->file_writer.file_path + "' completed in " + std::to_string(elapsed) +
+            " milliseconds.");
+        Logger::debug("Number of duplicates: " + std::to_string(current_client->n_duplicates));
+        current_client = nullptr;
     } else if (clear_flag(datagram.get_flags(), Flags::SQN) == Flags::None) {
         const std::vector<char> &payload = datagram.get_payload();
-        fileWriter->writeBytes(payload);
+        current_client->file_writer.writeBytes(payload);
         Logger::debug(
-            "Wrote " + std::to_string(payload.size()) + "/" + std::to_string(fileWriter->get_bytes_written()) +
-            " bytes to '" + fileWriter->file_path + "'");
+            "Wrote " + std::to_string(payload.size()) + "/" +
+            std::to_string(current_client->file_writer.get_bytes_written()) +
+            " bytes to '" + current_client->file_writer.file_path + "'");
     }
 
 }

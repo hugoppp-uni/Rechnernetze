@@ -16,7 +16,7 @@
 
 void send_datagram(const BftDatagram &datagram, sockaddr_in &server_addr);
 
-BftDatagram send_and_receive_response(const BftDatagram &datagram, sockaddr_in &server_addr);
+BftDatagram send_and_receive_response(const BftDatagram &datagram, sockaddr_in &server_addr, int max_retries = -1);
 
 int sock_fd;
 bool currSQN = false;
@@ -25,12 +25,18 @@ sockaddr_in server_addr;
 unsigned int nRetransmissions;
 
 void signalHandler(int signum) {
-    Logger::info("Server shutting down");
+    Logger::info("Server shutting down, notifying server");
 
     BftDatagram abr_datagram(Flags::ABR, SQN_START_VAL);
     BftDatagram response;
+
     do {
-        response = send_and_receive_response(abr_datagram, server_addr);
+        try {
+            response = send_and_receive_response(abr_datagram, server_addr, 3);
+        } catch (...) {
+            Logger::warn("Could not inform server about shutdown");
+            break;
+        }
     } while (!response.check_integrity() || !response.is_ACK_for(abr_datagram));
 
     close(sock_fd);
@@ -110,7 +116,7 @@ int main(int argc, char **args) {
 void send_datagram(const BftDatagram &datagram, sockaddr_in &server_addr) {
 
     while (true) {
-        BftDatagram response = send_and_receive_response(datagram, server_addr);
+        BftDatagram response = send_and_receive_response(datagram, server_addr, -1);
 
         if (!response.check_integrity()) {
             Logger::warn("Response seems to be corrupt. Retransmitting packet...");
@@ -138,8 +144,9 @@ void send_datagram(const BftDatagram &datagram, sockaddr_in &server_addr) {
     }
 }
 
-BftDatagram send_and_receive_response(const BftDatagram &datagram, sockaddr_in &server_addr) {
+BftDatagram send_and_receive_response(const BftDatagram &datagram, sockaddr_in &server_addr, int max_retries) {
 
+    int retry_count = 0;
     while (true) {
 
         int bytes_sent = datagram.send(sock_fd, server_addr);
@@ -155,7 +162,18 @@ BftDatagram send_and_receive_response(const BftDatagram &datagram, sockaddr_in &
         }
 
         if (errno == EAGAIN) { // Timeout occurred -> try again
-            Logger::warn("Timeout occurred. Retransmitting packet...");
+
+            if (max_retries < 0)
+                Logger::info("Timeout occurred. Retransmitting packet...");
+            else {
+                if (retry_count++ < max_retries) {
+                    Logger::info("Timeout occurred. Retransmitting packet... " + std::to_string(retry_count) + "/" + std::to_string(max_retries));
+                } else {
+                    throw std::runtime_error(
+                        "Failed to send datagram after " + std::to_string(max_retries) + "retries");
+                }
+            }
+
             nRetransmissions++;
         } else {
             perror("error during receive");
