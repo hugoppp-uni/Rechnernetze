@@ -21,12 +21,6 @@ Flags operator^(Flags lhs, Flags rhs) {
     );
 }
 
-Flags operator~(Flags lhs) {
-    return static_cast<Flags>(
-        ~static_cast<std::underlying_type<Flags>::type>(lhs)
-    );
-}
-
 std::string flags_to_str(Flags flags) {
     std::stringstream ss;
     if (flags == Flags::None)
@@ -38,7 +32,7 @@ std::string flags_to_str(Flags flags) {
             ss << "SYN ";
         if ((flags & Flags::AGN) == Flags::AGN)
             ss << "AGN ";
-        if ((flags & Flags::ABR) == Flags::AGN)
+        if ((flags & Flags::ABR) == Flags::ABR)
             ss << "ABR ";
         if ((flags & Flags::FIN) == Flags::FIN)
             ss << "FIN ";
@@ -47,6 +41,14 @@ std::string flags_to_str(Flags flags) {
     }
 
     std::string str = ss.str();
-    str.pop_back();
+    if (!str.empty())
+        str.pop_back();
     return str;
+}
+
+Flags clear_flag(Flags original, Flags flags_to_clear) {
+    return static_cast<Flags>(
+        static_cast<std::underlying_type<Flags>::type>(original)
+        & ~static_cast<std::underlying_type<Flags>::type>(flags_to_clear)
+    );
 }

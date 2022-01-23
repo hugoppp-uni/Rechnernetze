@@ -5,6 +5,9 @@
 #include <thread>
 #include <cstring>
 
+const BftDatagram BftDatagram::SYN = BftDatagram(Flags::SYN, SQN_START_VAL);
+const BftDatagram BftDatagram::ABR = BftDatagram(Flags::ABR, SQN_START_VAL);
+
 unsigned int BftDatagram::calc_checksum() {
     //we don't want to include the checksum field itself
     constexpr size_t crc_size = sizeof(BftDatagram) - offsetof(BftDatagram, payload_size);
@@ -57,7 +60,7 @@ int BftDatagram::receive(int fd, sockaddr_in &client_addr, BftDatagram &response
         (struct sockaddr *) &client_addr,
         &len);
 
-    if(bytes_recvd < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+    if (bytes_recvd < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
         errno = EAGAIN;
         return -1;
     } else if (bytes_recvd < 0) {
@@ -74,14 +77,17 @@ int BftDatagram::receive(int fd, sockaddr_in &client_addr, BftDatagram &response
 int BftDatagram::send(int sockfd, const sockaddr_in &client_addr) const {
     Logger::debug("˄ " + to_string());
     int bytes_sent = (int) sendto(
-            sockfd,
-            (void *) this,
-            size(),
-            MSG_CONFIRM,
-            (struct sockaddr *) &client_addr,
-            sizeof client_addr);
+        sockfd,
+        (void *) this,
+        size(),
+        MSG_CONFIRM,
+        (struct sockaddr *) &client_addr,
+        sizeof client_addr);
 
     Logger::data("Payload:\n" + get_payload_as_string());
+
+    if (bytes_sent <= 0)
+        Logger::error("error while sending response: " + std::string(strerror(errno)));
 
     return bytes_sent;
 }
@@ -92,4 +98,14 @@ std::string BftDatagram::to_string() const {
         flags_to_str(flags) +
         ", payload size: " + std::to_string(payload_size)
         + "'";
+}
+
+BftDatagram BftDatagram::create_ACK() const {
+    return BftDatagram(get_flags() | Flags::ACK, get_SQN());
+}
+
+bool BftDatagram::is_ACK_for(const BftDatagram &original) const {
+    return (get_flags() & Flags::ACK) == Flags::ACK &&
+           clear_flag(get_flags(), Flags::ACK) == original.get_flags() &&
+           get_SQN() == original.get_SQN();
 }

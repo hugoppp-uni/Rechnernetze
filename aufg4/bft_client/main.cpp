@@ -10,6 +10,7 @@
 #include <filesystem>
 #include <arpa/inet.h>
 #include <fstream>
+#include <csignal>
 #include "logger.hpp"
 #include "flags.hpp"
 
@@ -19,8 +20,23 @@ BftDatagram send_and_receive_response(const BftDatagram &datagram, sockaddr_in &
 
 int sock_fd;
 bool currSQN = false;
+sockaddr_in server_addr;
 
 unsigned int nRetransmissions;
+
+void signalHandler(int signum) {
+    Logger::info("Server shutting down");
+
+    BftDatagram abr_datagram(Flags::ABR, SQN_START_VAL);
+    BftDatagram response;
+    do {
+        response = send_and_receive_response(abr_datagram, server_addr);
+    } while (!response.check_integrity() || !response.is_ACK_for(abr_datagram));
+
+    close(sock_fd);
+    exit(EXIT_SUCCESS);
+}
+
 
 int main(int argc, char **args) {
     Options options{argc, args};
@@ -38,11 +54,13 @@ int main(int argc, char **args) {
         exit(EXIT_FAILURE);
     }
 
-    struct sockaddr_in server_addr{
+    server_addr = sockaddr_in{
         .sin_family = AF_INET,
         .sin_port = htons(options.server_port),
         .sin_addr = {inet_addr(options.server_ip.c_str())},
     };
+
+    signal(SIGINT, signalHandler); // Cleanup when pressing CTRL+C
 
     Logger::debug("Setting retransmission timeout to " + std::to_string(options.retransmission_timeout_ms) + " ms.");
     int timeout_sec = options.retransmission_timeout_ms / 1000;
@@ -100,7 +118,7 @@ void send_datagram(const BftDatagram &datagram, sockaddr_in &server_addr) {
         }
         //special case: if the server gets terminated, the server sends an ABR with no SQN set
         if ((response.get_flags() & Flags::ABR) == Flags::ABR && !response.get_SQN()) {
-            Logger::error("Server terminated, aborting upload");
+            Logger::error("Server busy, aborting upload");
             exit(EXIT_FAILURE);
         }
         if (response.get_SQN() != currSQN) {
@@ -108,7 +126,7 @@ void send_datagram(const BftDatagram &datagram, sockaddr_in &server_addr) {
             continue;
         }
 
-        if ((response.get_flags() & Flags::ACK) == Flags::ACK) {
+        if ((response.is_ACK_for(datagram))) {
             currSQN ^= true;
             return;
         } else if ((response.get_flags() & Flags::AGN) == Flags::AGN) {

@@ -20,10 +20,15 @@ public:
     BftDatagram(Flags flags, char *data_begin, char *data_end, bool sqn);
     BftDatagram(Flags flags, const std::string &data, bool sqn);
 
+
     bool check_integrity();
-    [[nodiscard]] int send(int sockfd, const sockaddr_in &client_addr) const;
+    int send(int sockfd, const sockaddr_in &client_addr) const;
 
     static int receive(int fd, sockaddr_in &client_addr, BftDatagram &response);
+    static const BftDatagram SYN;
+    static const BftDatagram ABR;
+
+    BftDatagram create_ACK() const;
 
     [[nodiscard]] std::string to_string() const;
 
@@ -33,12 +38,11 @@ public:
     [[nodiscard]] Flags get_flags() const { return flags; }
     [[nodiscard]] int get_payload_size() const { return payload_size; }
     [[nodiscard]] std::string checksum_as_string() const;
-    [[nodiscard]] bool get_SQN() const{
-        return (flags & Flags::SQN) == Flags::SQN;
-    }
-    [[nodiscard]] int size() const {
-        return payload_size + (int) HEADER_SIZE;
-    }
+    [[nodiscard]] bool get_SQN() const{ return (flags & Flags::SQN) == Flags::SQN; }
+    [[nodiscard]] int size() const { return payload_size + (int) HEADER_SIZE; }
+    [[nodiscard]] bool is_SYN() const{ return get_flags() == SYN.flags && get_SQN() == SYN.get_SQN(); }
+    [[nodiscard]] bool is_ABR() const{ return get_flags() == ABR.flags && get_SQN() == ABR.get_SQN(); }
+    [[nodiscard]] bool is_ACK_for(const BftDatagram &original) const;
 
 private:
     unsigned int checksum;

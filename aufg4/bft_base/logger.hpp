@@ -59,11 +59,7 @@ private:
         }
         stringstream << log;
 
-        if(log_level == level::DEBUG || log_level == level::ERR) {
-            std::cerr << stringstream.str() << std::endl;
-        } else {
-            std::cout << stringstream.str() << std::endl;
-        }
+        std::cout << stringstream.str() << std::endl;
     }
 
 public:

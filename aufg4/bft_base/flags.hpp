@@ -6,6 +6,8 @@
 
 #pragma once
 
+#define SQN_START_VAL false
+
 enum class Flags : unsigned short {
     None = 0,
     SQN = 1 << 0,
@@ -19,7 +21,8 @@ enum class Flags : unsigned short {
 Flags operator|(Flags lhs, Flags rhs);
 Flags operator&(Flags lhs, Flags rhs);
 Flags operator^(Flags lhs, Flags rhs);
-Flags operator~(Flags lhs);
+
+Flags clear_flag(Flags original, Flags flags_to_clear);
+
 std::string flags_to_str(Flags flags);
-void incrementSQN(Flags &flags);
 
