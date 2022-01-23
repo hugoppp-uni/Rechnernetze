@@ -79,7 +79,7 @@ int main(int argc, char **args) {
         if (received_datagram.is_SYN()) {
             if (handle_SYN(received_datagram, options.directory)) {
                 received_datagram.create_ACK().send(sock_fd, client_addr);
-                currentSQN ^= true;
+                currentSQN = SQN_START_VAL ^ true;
             } else {
                 BftDatagram::ABR.send(sock_fd, client_addr);
                 //do not update SQN
@@ -91,7 +91,6 @@ int main(int argc, char **args) {
             received_datagram.create_ACK().send(sock_fd, client_addr);
             fileWriter->abort();
             fileWriter = nullptr;
-            currentSQN = SQN_START_VAL;
         } else if (received_datagram.get_SQN() != currentSQN) {
             nDuplicates++;
             //todo ignore it or resend old ACK?
@@ -138,7 +137,6 @@ void handle_valid_datagram(BftDatagram &datagram) {
             "Upload of '" + fileWriter->file_path + "' completed in " + std::to_string(elapsed) + " milliseconds.");
         Logger::debug("Number of duplicates: " + std::to_string(nDuplicates));
         fileWriter = nullptr;
-        currentSQN = SQN_START_VAL;
     } else if (clear_flag(datagram.get_flags(), Flags::SQN) == Flags::None) {
         const std::vector<char> &payload = datagram.get_payload();
         fileWriter->writeBytes(payload);
