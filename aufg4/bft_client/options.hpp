@@ -9,6 +9,7 @@ public:
     std::string file_path;
     int retransmission_timeout_ms;
     bool debug;
+    int max_consec_timeouts;
 
     Options(int argc, char **argv) {
         cxxopts::Options options("bft_client", "Basic File Transfer Protocol Client");
@@ -17,6 +18,8 @@ public:
 
             ("r,retrans_timeout_ms", "Retransmission timeout (RTO) in ms",
              cxxopts::value(retransmission_timeout_ms)->default_value("2000"))
+            ("R,max_retrans", "Max consecutive failed retransmissions before aborting",
+             cxxopts::value(max_consec_timeouts)->default_value("-1"))
             ("d,debug", "Produce debug output to stderr",
              cxxopts::value(debug))
 

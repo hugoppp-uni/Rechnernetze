@@ -14,9 +14,9 @@
 #include "logger.hpp"
 #include "flags.hpp"
 
-void send_datagram(const BftDatagram &datagram, sockaddr_in &server_addr);
+void send_datagram_and_wait_for_ACK(const BftDatagram &datagram, sockaddr_in &server_addr, int max_consec_timeouts);
 
-BftDatagram send_and_receive_response(const BftDatagram &datagram, sockaddr_in &server_addr, int max_retries = -1);
+BftDatagram send_and_receive_response(const BftDatagram &datagram, sockaddr_in &server_addr, int max_consec_timeouts = -1);
 
 int sock_fd;
 bool currSQN = false;
@@ -86,7 +86,7 @@ int main(int argc, char **args) {
     nRetransmissions = 0;
 
     BftDatagram syn_datagram(Flags::SYN, std::filesystem::path(options.file_path).filename(), currSQN);
-    send_datagram(syn_datagram, server_addr);
+    send_datagram_and_wait_for_ACK(syn_datagram, server_addr, options.max_consec_timeouts);
 
     std::array<char, MAX_PAYLOAD_SIZE> send_data = {};
     std::ifstream file{options.file_path, std::ios_base::in | std::ios::binary};
@@ -98,10 +98,10 @@ int main(int argc, char **args) {
 
         BftDatagram data_datagram = BftDatagram(Flags::None, send_data.begin(),
                                                 send_data.begin() + bytes_read, currSQN);
-        send_datagram(data_datagram, server_addr);
+        send_datagram_and_wait_for_ACK(data_datagram, server_addr, options.max_consec_timeouts);
     }
 
-    send_datagram(BftDatagram(Flags::FIN, currSQN), server_addr);
+    send_datagram_and_wait_for_ACK(BftDatagram(Flags::FIN, currSQN), server_addr, options.max_consec_timeouts);
 
     file.close();
 
@@ -113,10 +113,10 @@ int main(int argc, char **args) {
 }
 
 
-void send_datagram(const BftDatagram &datagram, sockaddr_in &server_addr) {
+void send_datagram_and_wait_for_ACK(const BftDatagram &datagram, sockaddr_in &server_addr, int max_consec_timeouts) {
 
     while (true) {
-        BftDatagram response = send_and_receive_response(datagram, server_addr, -1);
+        BftDatagram response = send_and_receive_response(datagram, server_addr, max_consec_timeouts);
 
         if (!response.check_integrity()) {
             Logger::warn("Response seems to be corrupt. Retransmitting packet...");
@@ -144,7 +144,7 @@ void send_datagram(const BftDatagram &datagram, sockaddr_in &server_addr) {
     }
 }
 
-BftDatagram send_and_receive_response(const BftDatagram &datagram, sockaddr_in &server_addr, int max_retries) {
+BftDatagram send_and_receive_response(const BftDatagram &datagram, sockaddr_in &server_addr, int max_consec_timeouts) {
 
     int retry_count = 0;
     while (true) {
@@ -163,14 +163,14 @@ BftDatagram send_and_receive_response(const BftDatagram &datagram, sockaddr_in &
 
         if (errno == EAGAIN) { // Timeout occurred -> try again
 
-            if (max_retries < 0)
+            if (max_consec_timeouts < 0)
                 Logger::info("Timeout occurred. Retransmitting packet...");
             else {
-                if (retry_count++ < max_retries) {
-                    Logger::info("Timeout occurred. Retransmitting packet... " + std::to_string(retry_count) + "/" + std::to_string(max_retries));
+                if (retry_count++ < max_consec_timeouts) {
+                    Logger::info("Timeout occurred. Retransmitting packet... " + std::to_string(retry_count) + "/" + std::to_string(max_consec_timeouts));
                 } else {
                     throw std::runtime_error(
-                        "Failed to send datagram after " + std::to_string(max_retries) + "retries");
+                        "Failed to send datagram after " + std::to_string(max_consec_timeouts) + " retries");
                 }
             }
 
