@@ -109,7 +109,8 @@ int main(int argc, char **args) {
 
         // a regular datagram
         if (received_datagram.get_SQN() != current_client->current_SQN) {
-            current_client->n_duplicates++; //todo ignore it or resend old ACK?
+            current_client->n_duplicates++;
+            received_datagram.create_ACK().send(sock_fd, current_client->address);
         } else {
             received_datagram.create_ACK().send(sock_fd, current_client->address);
             current_client->increment_SQN();
